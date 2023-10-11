@@ -1,0 +1,18 @@
+zjs = 1
+zjs = "zjs" + "jhc"
+zjs = Query($tb=3,$id=4)
+
+global s1{
+    '电话': return "12345678"
+    <结果>: return "最终的结果"
+    <查询电话>: return "请输入账号"  goto s2
+}
+
+s2 {
+    ["sb".sb]: return "电话是" + Query($tb=sb,$id="id")
+}
+
+s3 {
+    ["sb".sb]: return "电话是" + Query($tb=Query($tb="table",$id="id"),$id="id")
+}
+

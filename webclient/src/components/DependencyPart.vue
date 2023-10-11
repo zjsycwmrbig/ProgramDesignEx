@@ -1,12 +1,15 @@
 <template>
-  <div class="box" @click="dataSource.checkoutDependency()">
+  <div class="box" @click="dataSource.checkoutDependency(dependency.index)">
+    
     <div class="description">
       <div class="name">{{ dependency.name }}</div>
       <div class="description">{{ dependency.description }}</div>
     </div>
+
     <div class="option">
       <el-icon><Star /></el-icon>
     </div>
+
   </div>
 </template>
 
@@ -66,10 +69,14 @@ export default {
     }
     .name{
       height: 70%;
+      width: 100%;
       color: #fff;
+      font-size: large;
     }
     .description{
       height: 30%;
+      width: 100%;
       color: #ccc;
+      font-size: small;
     }
 </style>
