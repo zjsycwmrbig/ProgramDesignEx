@@ -1,0 +1,2 @@
+export var MESSAGE_RESPOSE_TYPE = 1001;
+export var MESSAGE_REQUEST_TYPE = 1002;
