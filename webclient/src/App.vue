@@ -1,6 +1,10 @@
 <template>
   <div class="head">
-    <h3>{{ title }}</h3>
+    
+    <h3>
+      {{ title }}
+    </h3>
+    <el-icon><Comment /></el-icon>
   </div>
   
   <div class="container">
@@ -10,7 +14,12 @@
     </div>
     
     <div class="main">
-      <talk-windows/>
+
+      <talk-windows v-show="dataSource.showState == MESSAGE_SHOW"/>
+      <editor-windows v-if="dataSource.showState == CODE_SHOW"/>
+      <welcome-windows v-show="dataSource.showState == WELCOME_SHOW"/>
+      <!-- Editor-windows -->
+      
     </div>
 
   </div>
@@ -23,20 +32,32 @@
 </template>
 
 <script>
+import EditorWindows from './components/EditorWindows.vue';
 import ServiceList from './components/ServiceList.vue';
 import TalkWindows from './components/TalkWindows.vue';
-import { useTryStore } from './stores/pinia'
+import WelcomeWindows from './components/WelcomeWindows.vue';
+import { useDataStore, useTryStore } from './stores/pinia'
+import { MESSAGE_SHOW, CODE_SHOW, WELCOME_SHOW } from './stores/Constant'
   export default {
-  components: { TalkWindows, ServiceList },
+  components: { TalkWindows, ServiceList ,EditorWindows,WelcomeWindows},
+  computed:{
+    
+  },  
     setup() {
         const title = '客服机器人';
         const footer = '猫猫拯救世界';
         const tryStore = useTryStore();
         const getTry = tryStore.try1;
+        let dataSource = useDataStore();
+
         return { 
           getTry ,
           title,
-          footer
+          footer,
+          MESSAGE_SHOW,
+          CODE_SHOW ,
+          WELCOME_SHOW,
+          dataSource
         };
     }
 }
@@ -58,27 +79,27 @@ import { useTryStore } from './stores/pinia'
     width: 100%;
     height: 5%;
     
-    background-color: #ccc;
+    background-color: #242424;
+    border-bottom: 1px solid #7F7C9B;
   }
 
   .head h3{
-    color: tomato;
+    color: #7F7C9B;
   }
   .container{
     position: fixed;
     top: 5%;
-    left: 10%;
+    left: 0%;
     
     display: flex;
     justify-content: space-between;
-    width: 80%;
+    width: 100%;
     height: 90%;
   }
   .container .aside{
     width: 20%;
     height: 100%;
-    background-color: #ccc;
-    padding : 1%;
+    background-color: #242424;
   }
 
   .container .main{
@@ -86,7 +107,7 @@ import { useTryStore } from './stores/pinia'
 
     width: 80%;
     height: 100%;
-    background-color: #eee;
+    background-color: #242424;
     padding : 1%;
   }
   .foot{
@@ -100,6 +121,7 @@ import { useTryStore } from './stores/pinia'
     display: flex;
     justify-content: center;
     align-items: center;
+    border-top: #7F7C9B;
   }
 
 

@@ -1,36 +1,50 @@
 <template>
   <div class="window">
     <!-- 百分之90 -->
-    
-    <div class="talks">
-      <!-- 大小固定，但是其中的条目不固定 -->
-      <talk-record v-for="(item,index) in messageList" :message="item" :key="index"/>
+    <div class="talks" ref="container">
+      <talk-record v-for="(item,index) in messageList" :message="item" :key="index" />
     </div>
-    
     <!-- 百分之10 -->
     <div class="input">
       <!-- 输入框 -->
         <div class="text">
           <el-input
             v-model="trans.message"
-            autofocus="true"
             class="inputbox"
             @keydown.enter="trans.sendMessage()"
           />      
         </div>
+        <el-icon size="45"><Promotion /></el-icon>
     </div>
     
   </div>
 </template>
 
 <script>
+import { debug } from '../stores/LOG';
 import { useDataStore, useTransportStore } from '../stores/pinia';
+import Editor from './Editor.vue';
 import TalkRecord from './TalkRecord.vue';
 export default {
-  components: { TalkRecord },
+  components: { TalkRecord, Editor },
   computed:{
     messageList(){
       return this.dataSource.getHistoryData();
+    },
+  },
+  watch:{
+    messageList:{
+      deep:true,
+      handler(){
+        this.scrollToBottom();
+      }
+    }
+  },
+  methods:{
+    scrollToBottom(){
+      this.$nextTick(() => {
+        this.$refs.container.scrollTop = this.$refs.container.scrollHeight;
+      });
     }
   },
   setup() {
@@ -51,12 +65,27 @@ export default {
   }
 
   .talks{    
-
     margin: 3px auto;
     width: 100%;
     height: 90%;
     border: #000;
-    background-color: #ccc;
+    background-color: #242424;
+    overflow-y: auto;
+  }
+
+  .talks::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .talks::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 10px;
+  }
+
+  .talks::-webkit-scrollbar-thumb :hover{
+    background-color: #c2977f;
+    border-radius: 10px;
   }
 
   .input{
@@ -64,15 +93,13 @@ export default {
     width: 100%;
     height: 10%;
     padding: 1%;
+    display: flex;
+    justify-content: center;
   }
   
   .text{
-    position: absolute;
-    top:50%;
-    left: 50%;
-    transform: translate(-50%,-50%);
-    width: 80%;
-    height: 60%;
+    width: 70%;
+    height: 90%;
   }
 
   .inputbox{
