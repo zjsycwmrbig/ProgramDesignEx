@@ -5,6 +5,7 @@ import com.example.javaservice.Exception.CompileErrorException;
 import com.example.javaservice.Pojo.Entity.*;
 import com.example.javaservice.Result.Result;
 import com.example.javaservice.Utils.FunctionCompile;
+import com.example.javaservice.Utils.LOG;
 import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
@@ -18,26 +19,28 @@ import java.util.regex.Pattern;
 @Service
 
 public class SemanticAnalyzerImpl implements com.example.javaservice.Core.SemanticAnalyzer{
-
-    // TODO 这里的 id 先不赋值，等到analyse返回后再给id赋值
-
-    // 这个是生成的默认状态
     private Integer defaultState;
 
     List<CompileWarning> compileWarnings;
 
     // 这个是生成的结果字典
     private ResultDictionary resultDictionary;
-    private Map<String,Integer> resultMap; // 主要是看是否有重复的结果可以利用
-
-    Map<String, Variable> variableMap;
-    Map<String,State> stateMap;
-
+    // 全局状态集合
     private List<Integer> globalState; // 全局状态集合
-
     // 这个是生成的转换表
     private Map<Integer, TransferList> transMap;
+    // TODO 填充这两个东西,一个状态只能有一个默认响应体,并且在最后的全局状态中,不存在默认响应体的进行添加
+    // 超时响应体
+    private Map<Integer,WaitResult> waitResult;
+    // 默认响应体
+    private Map<Integer,TransferNode> defaultResult;
+
+    // 工具结构体
+    private Map<String,Integer> resultMap; // 主要是看是否有重复的结果可以利用
+    Map<String, Variable> variableMap;
+    Map<String,State> stateMap;
     private Integer stateIndex; // 递增的ID
+    String currentState; // 当前状态 指向的是stateMap中的key
 
     // 构造函数，需要tokens流
     public SemanticAnalyzerImpl(){
@@ -50,6 +53,9 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         stateIndex = 0;
         transMap = new java.util.HashMap<>();
         globalState = new java.util.ArrayList<>();
+        waitResult = new java.util.HashMap<>();
+        defaultResult = new java.util.HashMap<>();
+        currentState = null;
     }
 
     @Override
@@ -64,14 +70,12 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 AbstractSyntaxNode child = children.get(i);
                 if(child.getType() == AbstractSyntaxConstant.VARIABLE_DEFINE) {
                     // 变量定义
-
                     if ((variableAnalysis(child,i)) == null) {
                         logPrint();
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_ANALYZE_VARIABLE_DEFEAT,child.getLine(),compileWarnings);
                     }
                 }else if(child.getType() == AbstractSyntaxConstant.STATE_DEFINE) {
-
-                    // 状态定义
+                    // 状态定义 进入状态分析
                     if((res = stateAnalysis(child)) == null){
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_ANALYZE_STATE_DEFEAT,child.getLine(),compileWarnings);
                     }
@@ -86,10 +90,13 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         RobotDependency dependency = new RobotDependency();
         dependency.setDefaultState(defaultState);
         dependency.setGlobalState(globalState);
+
         // 处理transMap 中的condition
         transMap = conditionProcessor(transMap);
         dependency.setTransMap(transMap);
         dependency.setResultDictionary(resultDictionary);
+        dependency.setDefaultResultMap(defaultResult);
+        dependency.setWaitResultMap(waitResult);
 
         Map<String,Object> complexResult = new java.util.HashMap<>();
         complexResult.put("robotDependency",dependency);
@@ -381,10 +388,11 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
 
         if(is_global) {
             identifier = children.get(1).getValue();
+
         }else{
             identifier = children.get(0).getValue();
         }
-
+        currentState = identifier;
         // 获取state状态
         State state = stateMap.get(identifier);
         if(state == null){
@@ -403,10 +411,11 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 Result result = logicAnalysis(child,state.getIndex());
                 if(result == null) {
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST, node.getLine(), compileWarnings);
-                }else{
+                }else if(result.getState() == ResultConstant.SUCCESS){
                     // 处理返回的transfer
                     logicList.addTransfer((TransferNode) result.getData());
                 }
+                // 处理一下
             }else{
                 continue;
             }
@@ -420,6 +429,8 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
     @Override
     public Result logicAnalysis(AbstractSyntaxNode node, int index) {
         // 匹配符 关键字 结果表示
+
+        // TODO 增加wait 和 default 支持
         if(node.getType() != AbstractSyntaxConstant.LOGIC_DEFINE){
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,node.getLine(),compileWarnings);
         }
@@ -433,7 +444,8 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         AbstractSyntaxNode match_input_Node = children.get(0);
         // RETURN
         AbstractSyntaxNode keyWord_Node = children.get(2);
-        // 结果节点
+
+        // 结果节点 下面的就是填充这个结果
         AbstractSyntaxNode result_Node = children.get(3);
         //
         AbstractSyntaxNode goto_Node = null;
@@ -446,6 +458,8 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         }
 
         TransferNode transferNode = new TransferNode();
+        Boolean treatInGlobal = false;
+
 
         // 参数列表填充到Condition里面
         List<String> paramList = null; // 可能是空的
@@ -479,7 +493,47 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 // 生成一个条件转移节点，后续没有别的处理
                      transferNode.setCondition((Condition) res.getData());
             }
-        }else{
+        }else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("default")){
+            //TODO 默认 查看是否存在default状态匹配
+            treatInGlobal = true;
+            if(stateMap.containsKey(currentState)){
+                if(defaultResult.containsKey(stateMap.get(currentState).getId())){
+                    // 已经存在默认状态
+                    throw new CompileErrorException(CompileErrorConstant.THERE_ARE_NOT_ONE_DEFAULT,match_input_Node.getLine(),compileWarnings);
+                }
+            }else{
+                throw new CompileErrorException(CompileErrorConstant.STATE_MAP_ERROR,match_input_Node.getLine(),compileWarnings);
+            }
+        }else if(match_input_Node.getType() == AbstractSyntaxConstant.WAIT_DEFINE) {
+            // TODO 超时相应模式
+            treatInGlobal = true;
+            if(match_input_Node.getChildren().size() != 2){
+                throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
+            }else{
+                // 获得时间节点
+                AbstractSyntaxNode timeNode = match_input_Node.getChildren().get(1);
+                if(timeNode.getType() != TokensConstant.NUMBER){
+                    throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
+                }else{
+                    // 查看是否已经存在超时状态
+                    if(stateMap.containsKey(currentState)){
+                        if(waitResult.containsKey(stateMap.get(currentState).getId())){
+                            // 已经存在超时状态
+                            throw new CompileErrorException(CompileErrorConstant.THERE_ARE_NOT_ONE_WAIT,match_input_Node.getLine(),compileWarnings);
+                        }else{
+                            // 不存在超时状态 生成一个超时状态
+                            Integer time = Integer.parseInt(timeNode.getValue());
+                            if(time == null ||time <= 0){
+                                throw new CompileErrorException(CompileErrorConstant.TIME_ERROR,match_input_Node.getLine(),compileWarnings);
+                            }
+                            waitResult.put(stateMap.get(currentState).getId(),new WaitResult(time,null,null));
+                        }
+                    }else{
+                        throw new CompileErrorException(CompileErrorConstant.STATE_MAP_ERROR,match_input_Node.getLine(),compileWarnings);
+                    }
+                }
+            }
+        } else{
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
         }
 
@@ -488,7 +542,6 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         if(result == null){
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_LOGIC_RESULT_FAIL,result_Node.getLine(),compileWarnings);
         }else{
-
             // 设定状态
             transferNode.setResultID(result.getState());
         }
@@ -510,8 +563,19 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
             }
         }
 
-        // 这里的transferNode已经填充完毕
-        return Result.success(transferNode);
+        if(treatInGlobal){
+            // 拿到transferNode 的ID和状态
+            if(match_input_Node.getType() == AbstractSyntaxConstant.WAIT_DEFINE) {
+                // 超时状态
+                waitResult.get(stateMap.get(currentState).getId()).setResultID(transferNode.getResultID());
+                waitResult.get(stateMap.get(currentState).getId()).setTargetState(transferNode.getTargetState());
+            }else{
+                defaultResult.put(stateMap.get(currentState).getId(),transferNode);
+            }
+            return new Result(ResultConstant.GLOBAL_TREAT,null,null);
+        }else{
+            return Result.success(transferNode);
+        }
     }
 
     @Override
@@ -796,11 +860,26 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 }
             }
 
+            printStream.println("=========================================");
 
-
-
+            // 打印defaultTransMap
+            printStream.println("defaultResult:");
+            for(Integer key : defaultResult.keySet()){
+                printStream.println("state" + key);
+                printStream.print("      ");
+                printStream.println(defaultResult.get(key));
+            }
 
             printStream.println("=========================================");
+            // 打印waitResult
+            printStream.println("waitResult:");
+            for(Integer key : waitResult.keySet()){
+                printStream.println("state" + key);
+                printStream.println("time" + waitResult.get(key).getWaitTime());
+                printStream.print("      ");
+                printStream.println(waitResult.get(key).toString());
+            }
+
         }catch (Exception e){
             e.printStackTrace();
         }

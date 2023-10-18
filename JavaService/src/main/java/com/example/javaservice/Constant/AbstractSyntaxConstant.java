@@ -11,6 +11,7 @@ public class AbstractSyntaxConstant {
     public static final int PARAMETER_DEFINE = 108;
     public static final int INPUT_TEMPLATE = 109;
     public static final Integer INPUT_DEFINE = 110;
+    public static final Integer WAIT_DEFINE = 111;
     public static final String[] ABSTRACT_SYNTAX_NODE = {
             "UNKNOWN_TYPE",
             "BEGIN_NODE",
@@ -21,7 +22,9 @@ public class AbstractSyntaxConstant {
             "FUNCTION_DEFINE",
             "PARAMETER_DEFINE",
             "INPUT_TEMPLATE",
-            "INPUT_DEFINE"
+            "INPUT_DEFINE",
+            "WAIT_DEFINE"
     };
+
 
 }

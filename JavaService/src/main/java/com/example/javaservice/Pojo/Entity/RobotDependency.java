@@ -14,6 +14,8 @@ public class RobotDependency implements Serializable {
     private Map<Integer, TransferList> transMap;
     private ResultDictionary resultDictionary;
     private Map<String,Integer> stateMap;
+    private Map<Integer,WaitResult> waitResultMap;
+    private Map<Integer,TransferNode> defaultResultMap;
 
     public RobotDependency() {
         transMap = new java.util.HashMap<>(); // 初始化一下

@@ -6,6 +6,8 @@ global s1{
     '电话': return "12345678"
     <结果>: return "最终的结果"
     <查询电话>: return "请输入账号"  goto s2
+    default : return "没有找到"
+    wait 100 : return "等待多少秒,无应答返回"
 }
 
 s2 {

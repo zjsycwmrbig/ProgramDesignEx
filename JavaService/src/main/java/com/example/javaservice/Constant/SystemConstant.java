@@ -10,4 +10,5 @@ public class SystemConstant {
     public static final String SEMANTIC_ANAYSIS_PATH = "src/main/resources/SemanticAnalysis/";
 
     public static final String DEFAULT_DEPENDENCY_NAME = "NewDependency";
+    public static final long WAIT_TIME = 100; // 进程等待时间 单位毫秒
 }

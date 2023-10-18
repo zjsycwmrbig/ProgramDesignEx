@@ -24,4 +24,8 @@ public class CompileErrorConstant {
     public static final String SEMANTIC_LOGIC_RESULT_FAIL = "逻辑求解时，结果分析失败";
     public static final String SEMANTIC_ANALYZE_STATE_DEFEAT = "逻辑分析失败";
     public static final String SEMANTIC_CONDITION_ERROR = "条件解析失败";
+    public static final String STATE_MAP_ERROR = "状态映射结构错误";
+    public static final String THERE_ARE_NOT_ONE_DEFAULT = "不只存在一个默认状态";
+    public static final String THERE_ARE_NOT_ONE_WAIT = "不只存在一个超时响应";
+    public static final String TIME_ERROR = "时间定义错误";
 }

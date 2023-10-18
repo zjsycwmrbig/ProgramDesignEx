@@ -10,10 +10,13 @@ import com.example.javaservice.Pojo.Entity.*;
 import com.example.javaservice.Result.Result;
 import com.example.javaservice.Utils.FunctionCaller;
 import com.example.javaservice.Utils.LOG;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 
 import java.io.FileInputStream;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 
 import java.util.*;
@@ -28,7 +31,52 @@ public class CustomerService {
     private static int state = 0;
     private static RobotDependency robotDependency;
     private static ResultDictionary resultDictionary;
+    private static Map<Integer,TransferNode> defaultResultMap;
 
+    public static WebSocketSession client;
+
+    private static Integer waitTime = 0;
+    private static Integer tick = 0;
+    private static Integer waitResponse;
+    private static Integer waitTarget;
+    // 新建线程
+    public static Thread thread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            while(true) {
+                try { // 等待时间 如果waitTime不为0 则证明存在等待响应时间
+                    // 定时器
+                    for(tick = 0;tick <waitTime;tick++){
+                        // 睡眠一秒
+                        Thread.sleep(1000);
+                    }
+                    if(client != null) {
+                        LOG.DEBUG("超时发送");
+                        client.sendMessage(new TextMessage(ResultGenerator(waitResponse,null)));
+                        StateChangeProcessor(waitTarget);
+                    }
+                    Thread.sleep(SystemConstant.WAIT_TIME);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    });
+
+    /**
+     * 更新响应状态
+     */
+    public static void resetWaitResponse(){
+        if(robotDependency != null && state != -1 && robotDependency.getWaitResultMap().containsKey(state)) {
+            // 可能存在超时响应状态
+            tick = 0;
+            waitTime = robotDependency.getWaitResultMap().get(state).getWaitTime();
+            waitResponse = robotDependency.getWaitResultMap().get(state).getResultID();
+            waitTarget = robotDependency.getWaitResultMap().get(state).getTargetState();
+        }else{
+            waitTime = 0; // 保证不可能进入循环
+        }
+    }
 
     public static List<Suggestion> SuggestionGenerator() {
         return null;
@@ -54,11 +102,19 @@ public class CustomerService {
             if((res = ConditionProcessor(TransferList.get(i).getCondition(),inputStr)) != null){
                 // 如果匹配成功，那么就返回对应的响应
                 if(TransferList.get(i).getTargetState() != -1){
-                    state = TransferList.get(i).getTargetState();
+                    StateChangeProcessor(TransferList.get(i).getTargetState());
                 }
                 return new Result(state,ResultGenerator(TransferList.get(i).getResultID(), (Map) res.getData()),"响应成功");
             }
         }
+
+        // 查看默认响应
+        if(defaultResultMap.containsKey(state)){
+            // 如果存在默认响应
+            return new Result(state,ResultGenerator(defaultResultMap.get(state).getResultID(),null),"响应成功");
+        }
+
+
         // 没有相应成功的 从全局状态中寻找
         List<Integer> globalState = robotDependency.getGlobalState();
         for(int i = 0;i < globalState.size();i++){
@@ -75,16 +131,33 @@ public class CustomerService {
                 if((res = ConditionProcessor(TransferList.get(j).getCondition(),inputStr)) != null){
                     // 如果匹配成功，那么就返回对应的响应
                     if(TransferList.get(j).getTargetState() != -1){
-                        state = TransferList.get(j).getTargetState();
+                        StateChangeProcessor(TransferList.get(j).getTargetState());
                     }
                     return new Result(state,ResultGenerator(TransferList.get(j).getResultID(), (Map) res.getData()),"响应成功");
                 }
             }
+            // 全局查询默认
+            if(defaultResultMap.containsKey(global_tate)){
+                // 如果存在默认响应
+                return new Result(state,ResultGenerator(defaultResultMap.get(global_tate).getResultID(),null),"响应成功");
+            }
         }
-
         return null;
     }
 
+    /**
+     * 根据响应ID生成响应
+     * @return
+     */
+    private static Result StateChangeProcessor(Integer targetState){
+        if(targetState != -1){
+            state = targetState;
+            resetWaitResponse(); // 状态更新也要更新等待响应模块
+            return Result.success();
+        }else{
+            return Result.error();
+        }
+    }
 
     public static int AssembleDependency(String dependencyPath,Integer assembleState) {
         LOG.INFO("开始装配依赖" + dependencyPath);
@@ -102,6 +175,8 @@ public class CustomerService {
         if(obj instanceof RobotDependency){
             robotDependency = (RobotDependency) obj;
             resultDictionary = robotDependency.getResultDictionary();
+            defaultResultMap = robotDependency.getDefaultResultMap();
+
             if(assembleState == null){
                 state = robotDependency.getDefaultState();
             }else{
@@ -195,7 +270,6 @@ public class CustomerService {
 
         return "";
     }
-
 
     public static void testAssembly(RobotDependency robot){
         // 测试性装填

@@ -171,7 +171,30 @@ public class SyntaxAnalyzerIpml implements com.example.javaservice.Core.SyntaxAn
             }else{
                 return null;
             }
-        }else{
+        }else if(tokens.get(MATCH_INDEX).type == TokensConstant.KEYWORD){
+
+            if(tokens.get(MATCH_INDEX).token.equals("wait")){
+
+                // 后面应该有数字
+                if(tokens.get(MATCH_INDEX + 1).type == TokensConstant.NUMBER) {
+                    AbstractSyntaxNode child = new AbstractSyntaxNode(AbstractSyntaxConstant.WAIT_DEFINE, "",tokens.get(MATCH_INDEX).lineIndex);
+                    child.addChild(new AbstractSyntaxNode(TokensConstant.KEYWORD, tokens.get(MATCH_INDEX).token,tokens.get(MATCH_INDEX).lineIndex));
+                    child.addChild(new AbstractSyntaxNode(TokensConstant.NUMBER, tokens.get(MATCH_INDEX + 1).token,tokens.get(MATCH_INDEX + 1).lineIndex));
+                    son_length+=2;
+
+                    node.addChild(child);
+                }else{
+                    return null;
+                }
+            }else if(tokens.get(MATCH_INDEX).token.equals("default")){
+                // 针对wait 和 default
+                node.addChild(new AbstractSyntaxNode(TokensConstant.KEYWORD, tokens.get(MATCH_INDEX).token,tokens.get(MATCH_INDEX).lineIndex));
+                son_length++;
+            }else{
+                // TODO 这里的都可以返回错误直接抛出，细化错误
+                return null;
+            }
+        } else{
             return null;
         }
 

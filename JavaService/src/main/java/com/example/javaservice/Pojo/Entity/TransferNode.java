@@ -25,4 +25,10 @@ public class TransferNode implements Serializable{
         resultID = -1;
         targetState = -1;
     }
+
+    public TransferNode(Condition condition, Integer resultID, Integer targetState) {
+        this.condition = condition;
+        this.resultID = resultID;
+        this.targetState = targetState;
+    }
 }

@@ -12,5 +12,6 @@ public interface DSLCompiler {
     public Result SaveDependency(RobotDependency robotDependency, String code);
 
 
-    public Result compileByCode(String code);
+
+    Result compileByCode(String code, String name, String description);
 }

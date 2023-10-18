@@ -1,6 +1,7 @@
 package com.example.javaservice.Controller;
 
 import com.example.javaservice.Core.DSLCompiler;
+import com.example.javaservice.Pojo.Dto.NewDependencyDto;
 import com.example.javaservice.Result.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -14,8 +15,8 @@ public class CreateDependencyByCode {
     DSLCompiler dslCompiler;
 
     // 处理纯文本
-    @PostMapping( value = "/createByCode",consumes = MediaType.TEXT_PLAIN_VALUE)
-    public Result createByCode(@RequestBody String code) {
-        return dslCompiler.compileByCode(code);
+    @PostMapping( value = "/createByCode")
+    public Result createByCode(@RequestBody NewDependencyDto newDependencyDto) {
+        return dslCompiler.compileByCode(newDependencyDto.getCode(),newDependencyDto.getName(),newDependencyDto.getDescription());
     }
 }

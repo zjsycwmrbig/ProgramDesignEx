@@ -1,5 +1,6 @@
 package com.example.javaservice.Core.impl;
 
+import com.example.javaservice.Constant.ResultConstant;
 import com.example.javaservice.Constant.SystemConstant;
 import com.example.javaservice.Core.LexicalAnalyzer;
 import com.example.javaservice.Core.SemanticAnalyzer;
@@ -27,18 +28,6 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
     DependencyMapMapper dependencyMapMapper;
 
     // 这个地方才有原始的数据，包含tokens等数据，如果有警告，错误，也会在这里处理，然后返回
-
-    @Autowired
-    LexicalAnalyzer lexicalAnalyzer;
-
-    @Autowired
-    SyntaxAnalyzer syntaxAnalyzer;
-
-    // 语义分析 返回警告和错误信息，以及产生的Dependency(成功了）
-    @Autowired
-    SemanticAnalyzer semanticAnalyzer;
-
-    // compile 函数 负责装配 和 存储数据
 
 
     @Override
@@ -80,11 +69,17 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
     }
 
     @Override
-    public Result compileByCode(String code) {
+    public Result compileByCode(String code, String name, String description) {
+        LexicalAnalyzer lexicalAnalyzer = new LexicalAnalyzerImpl();
+        SyntaxAnalyzer syntaxAnalyzer = new SyntaxAnalyzerIpml();
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzerImpl();
+
         Tokens tokens = lexicalAnalyzer.analyze(code);
+
         if(tokens == null){
             return Result.error("词法分析失败");
         }
+
         LOG.INFO("词法分析完成");
         AbstractSyntaxTree abstractSyntaxTree = syntaxAnalyzer.analyze(tokens.getStream());
         if(abstractSyntaxTree == null){
@@ -99,13 +94,59 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
 
         if(robotDependency != null){
             // 保存依赖
-            Result id = SaveDependency(robotDependency, code);
-
-            return new Result(id.getState(),compileWarnings,"编译成功");
+            Result res = SaveDependency(robotDependency, code, name, description);
+            if(res.getState() == ResultConstant.SUCCESS){
+                return new Result((Integer) res.getData(),compileWarnings,"编译成功");
+            }else{
+                return Result.error("依赖存储失败");
+            }
         }else{
             return Result.error("语义分析失败");
         }
     }
 
+    private Result SaveDependency(RobotDependency robotDependency, String code, String name, String description) {
+        DependencyMap dependencyMap = new DependencyMap();
+        dependencyMap.setName(name);
+        dependencyMap.setPath(UUID.randomUUID().toString());
+        dependencyMap.setCode(UUID.randomUUID().toString());
+        dependencyMap.setDefaltState(robotDependency.getDefaultState());
+        dependencyMap.setDescription(description);
+
+        try {
+            LOG.INFO("开始序列化存储");
+            LOG.INFO("存储路径为" + SystemConstant.ROBOT_DEPENDENCY_PATH + dependencyMap.getPath());
+            LOG.INFO("默认状态: " + robotDependency.getDefaultState());
+            FileOutputStream fileOut = new FileOutputStream(SystemConstant.ROBOT_DEPENDENCY_PATH + dependencyMap.getPath());
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(robotDependency);
+            out.close();
+            fileOut.close();
+        } catch (Exception e) {
+            throw new SaveException("序列化存储失败");
+        }
+
+        if(code == null){
+            code = "This is a test code";
+        }
+        // 保存代码
+        try{
+            LOG.INFO("开始代码存储");
+            LOG.INFO("存储路径为" + SystemConstant.INPUT_PATH + dependencyMap.getCode());
+            FileOutputStream fileOut = new FileOutputStream(SystemConstant.INPUT_PATH + dependencyMap.getCode());
+            fileOut.write(code.getBytes());
+            fileOut.close();
+        } catch (Exception e) {
+            throw new SaveException("代码存储失败");
+        }
+        // 存储依赖映射 返回id
+        Integer id = null;
+        if(dependencyMapMapper.insert(dependencyMap) > 0){
+            id = dependencyMap.getId();
+            return Result.success(id) ;
+        }else{
+            return Result.error("存储依赖映射失败");
+        }
+    }
 
 }
