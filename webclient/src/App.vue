@@ -37,7 +37,8 @@ import ServiceList from './components/ServiceList.vue';
 import TalkWindows from './components/TalkWindows.vue';
 import WelcomeWindows from './components/WelcomeWindows.vue';
 import { useDataStore, useTryStore } from './stores/pinia'
-import { MESSAGE_SHOW, CODE_SHOW, WELCOME_SHOW } from './stores/Constant'
+import { MESSAGE_SHOW, CODE_SHOW, WELCOME_SHOW, websocket } from './stores/Constant'
+import { debug } from './stores/LOG';
   export default {
   components: { TalkWindows, ServiceList ,EditorWindows,WelcomeWindows},
   computed:{
@@ -49,6 +50,16 @@ import { MESSAGE_SHOW, CODE_SHOW, WELCOME_SHOW } from './stores/Constant'
         const tryStore = useTryStore();
         const getTry = tryStore.try1;
         let dataSource = useDataStore();
+        // 创建websocket连接
+        
+        const ws = new WebSocket(websocket);
+        ws.onopen = function(){
+          console.log('连接成功');
+        }
+        
+        ws.onmessage = function(e){
+          debug('收到消息',e.data);
+        }
 
         return { 
           getTry ,

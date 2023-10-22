@@ -3,11 +3,16 @@ package com.example.javaservice.Handler;
 import com.example.javaservice.Core.CustomerService;
 import com.example.javaservice.Result.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class WebsocketHandler extends TextWebSocketHandler{
 
 

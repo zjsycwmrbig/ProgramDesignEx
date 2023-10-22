@@ -21,7 +21,6 @@
 </template>
 
 <script>
-import { debug } from '../stores/LOG';
 import { useDataStore, useTransportStore } from '../stores/pinia';
 import Editor from './Editor.vue';
 import TalkRecord from './TalkRecord.vue';

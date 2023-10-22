@@ -22,20 +22,6 @@ export const useDataStore = defineStore('data',{
         showState:WELCOME_SHOW, // 显示状态 // 0:显示历史数据 1:显示代码
         dataSource:[], // 数据源信息,包含id等内容
         dependencyList:[], // 依赖列表
-        /*
-        data:[
-            {
-                index
-                TempState: 临时状态 从相应生成器中获得
-                history:[] 
-                dependency:{
-                    id
-                    name
-                    description
-                } 
-            },
-        ]
-*/ 
     }),
     actions: {
         // 增加响应
