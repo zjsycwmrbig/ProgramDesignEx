@@ -57,8 +57,9 @@ import { debug } from './stores/LOG';
           console.log('连接成功');
         }
         
-        ws.onmessage = function(e){
-          debug('收到消息',e.data);
+        ws.onmessage = function(event){
+          // 添加到消息队列
+          dataSource.addResposeData(event.data);
         }
 
         return { 
