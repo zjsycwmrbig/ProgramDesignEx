@@ -1,21 +1,25 @@
 
-
-export function debug(message){
+// 多参数的日志函数
+export function log(...args){
     const currentTime = new Date().toLocaleTimeString();
-    console.log(`[${currentTime}][DEBUG]: ${message}`)
+    console.log(`[${currentTime}][LOG]:`, ...args)
+}
+export function debug(...args){
+    const currentTime = new Date().toLocaleTimeString();
+    console.log(`[${currentTime}][DEBUG]:`, ...args)
 }
 
-export function info(message){
+export function info(...args){
     const currentTime = new Date().toLocaleTimeString();
-    console.log(`[${currentTime}][INFO ]: ${message}`)
+    console.log(`[${currentTime}][INFO ]:`,...args)
 }
 
-export function warning(message){
+export function warning(...args){
     const currentTime = new Date().toLocaleTimeString();
-    console.log(`[${currentTime}][WARNING]: ${message}`)
+    console.log(`[${currentTime}][WARNING]: `,...args)
 }
 
-export function error(message){
+export function error(...args){
     const currentTime = new Date().toLocaleTimeString();
-    console.log(`[${currentTime}][ERROR]: ${message}`)
+    console.log(`[${currentTime}][ERROR]:`,...args)
 }
