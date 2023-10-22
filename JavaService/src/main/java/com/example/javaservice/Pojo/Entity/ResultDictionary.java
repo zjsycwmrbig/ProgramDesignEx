@@ -11,7 +11,7 @@ public class ResultDictionary implements Serializable {
     }
 
     public CompileResult getCompileResult(Integer id){
-        if(id < 0 || id >= compileResults.size())
+        if(id == null || id < 0 || id >= compileResults.size())
             return null;
         return compileResults.get(id);
     }

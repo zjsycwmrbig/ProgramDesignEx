@@ -50,7 +50,7 @@ public class CustomerService {
                         // 睡眠一秒
                         Thread.sleep(1000);
                     }
-                    if(client != null) {
+                    if(client != null && waitTime != 0) {
                         LOG.DEBUG("超时发送");
                         client.sendMessage(new TextMessage(ResultGenerator(waitResponse,null)));
                         StateChangeProcessor(waitTarget);
