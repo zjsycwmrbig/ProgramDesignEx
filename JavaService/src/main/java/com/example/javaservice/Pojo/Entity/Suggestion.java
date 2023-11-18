@@ -7,8 +7,6 @@ import lombok.Data;
  */
 @Data
 public class Suggestion {
-    Integer robotDependencyId;
-    String suggestion;
-    Integer state;
-    Integer nodeID;
+    String suggestion; // 显示的建议
+    String inputTemplate; // 输入模板
 }

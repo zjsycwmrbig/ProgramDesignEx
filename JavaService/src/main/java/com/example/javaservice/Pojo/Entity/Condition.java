@@ -22,6 +22,7 @@ public class Condition implements java.io.Serializable{
     Pattern pattern; // 正则表达式
     // 参数列表
     List<String> params;
+
     public  Condition(Integer type, List<String> REGEX, Integer input_num){
         this.type = type;
         this.REGEX = REGEX;

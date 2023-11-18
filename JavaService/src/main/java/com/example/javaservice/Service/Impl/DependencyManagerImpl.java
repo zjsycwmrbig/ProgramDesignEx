@@ -4,6 +4,7 @@ import com.example.javaservice.Constant.ResultConstant;
 import com.example.javaservice.Constant.SystemConstant;
 import com.example.javaservice.Core.CustomerService;
 import com.example.javaservice.Mapper.DependencyMapMapper;
+import com.example.javaservice.Mapper.TelephoneMapMapper;
 import com.example.javaservice.Pojo.Entity.DependencyMap;
 import com.example.javaservice.Pojo.Vo.DependencyVo;
 import com.example.javaservice.Result.Result;
@@ -21,8 +22,12 @@ public class DependencyManagerImpl implements com.example.javaservice.Service.De
     @Autowired
     DependencyMapMapper dependencyMapMapper;
 
+    @Autowired
+    TelephoneMapMapper telephoneMapMapper; // 从这里注入
+
     @Override
     public Result checkOutDependency(Integer id, Integer state) {
+        FunctionCaller.init(telephoneMapMapper);
         if(id == null) {
             return Result.error("id为空");
         }
@@ -99,5 +104,11 @@ public class DependencyManagerImpl implements com.example.javaservice.Service.De
         // 删除数据库
         dependencyMapMapper.deleteById(id);
         return Result.success("销毁成功");
+    }
+
+    @Override
+    public Result updateDependencyState() {
+        CustomerService.resetState();
+        return Result.success("更新成功");
     }
 }

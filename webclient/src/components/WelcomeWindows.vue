@@ -1,31 +1,24 @@
 <template>
-    <div class="welcome">
-        
+    <div class="welcome" v-show="dataSource.showState == WELCOME_SHOW">
         <div class="welcome-title">
             <h1>欢迎使用</h1>
         </div>
-
         <div class="welcome-content">
             <p>这是一个客服机器人</p>
-            <p>你可以在这里编辑你的代码</p>
-            <p>你可以在这里和机器人聊天</p>
-            <p>你可以在这里查看你的历史记录</p>
-            <p>你可以在这里查看你的依赖</p>
-            <p>你可以在这里查看你的配置</p>
-            <p>你可以在这里查看你的日志</p>
-            <p>你可以在这里查看你的状态</p>
-            <p>你可以在这里查看你的数据</p>
         </div>
-
     </div>
 
 </template>
 
 <script>
+import { WELCOME_SHOW } from '../stores/Constant';
+import { useDataStore } from '../stores/pinia';
+
 export default {
     setup(){
+        let dataSource = useDataStore()
         return {
-
+            dataSource
         }
     }
 }

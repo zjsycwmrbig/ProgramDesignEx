@@ -7,6 +7,7 @@ import com.example.javaservice.Core.SemanticAnalyzer;
 import com.example.javaservice.Core.SyntaxAnalyzer;
 import com.example.javaservice.Exception.SaveException;
 import com.example.javaservice.Mapper.DependencyMapMapper;
+import com.example.javaservice.Pojo.Dto.NewDependencyDto;
 import com.example.javaservice.Pojo.Entity.*;
 import com.example.javaservice.Result.Result;
 import com.example.javaservice.Utils.LOG;
@@ -26,9 +27,6 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
 
     @Autowired
     DependencyMapMapper dependencyMapMapper;
-
-    // 这个地方才有原始的数据，包含tokens等数据，如果有警告，错误，也会在这里处理，然后返回
-
 
     @Override
     public Result SaveDependency(RobotDependency robotDependency,String code) {
@@ -69,7 +67,13 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
     }
 
     @Override
-    public Result compileByCode(String code, String name, String description) {
+    public Result compileByCode(NewDependencyDto newDependencyDto) {
+        String code = newDependencyDto.getCode();
+        String name = newDependencyDto.getName();
+        String description = newDependencyDto.getDescription();
+        Boolean suggestion_when_check = newDependencyDto.getSuggestion_when_check();
+        Boolean suggestion_when_pass = newDependencyDto.getSuggestion_when_pass();
+
         LexicalAnalyzer lexicalAnalyzer = new LexicalAnalyzerImpl();
         SyntaxAnalyzer syntaxAnalyzer = new SyntaxAnalyzerIpml();
         SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzerImpl();
@@ -94,7 +98,7 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
 
         if(robotDependency != null){
             // 保存依赖
-            Result res = SaveDependency(robotDependency, code, name, description);
+            Result res = SaveDependency(robotDependency, code, name, description,suggestion_when_check,suggestion_when_pass);
             if(res.getState() == ResultConstant.SUCCESS){
                 return new Result((Integer) res.getData(),compileWarnings,"编译成功");
             }else{
@@ -105,7 +109,7 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
         }
     }
 
-    private Result SaveDependency(RobotDependency robotDependency, String code, String name, String description) {
+    private Result SaveDependency(RobotDependency robotDependency, String code, String name, String description,Boolean suggestion_when_check,Boolean suggestion_when_pass) {
         DependencyMap dependencyMap = new DependencyMap();
         dependencyMap.setName(name);
         dependencyMap.setPath(UUID.randomUUID().toString());
@@ -113,6 +117,8 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
         dependencyMap.setDefaltState(robotDependency.getDefaultState());
         dependencyMap.setDescription(description);
 
+        robotDependency.setSuggestion_when_check(suggestion_when_check);
+        robotDependency.setSuggestion_when_pass(suggestion_when_pass);
         try {
             LOG.INFO("开始序列化存储");
             LOG.INFO("存储路径为" + SystemConstant.ROBOT_DEPENDENCY_PATH + dependencyMap.getPath());

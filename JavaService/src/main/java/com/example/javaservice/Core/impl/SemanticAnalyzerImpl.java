@@ -91,7 +91,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         dependency.setDefaultState(defaultState);
         dependency.setGlobalState(globalState);
 
-        // 处理transMap 中的condition
+        // 处理transMap 中的condition pattern 初始化 以及 input的初始化
         transMap = conditionProcessor(transMap);
         dependency.setTransMap(transMap);
         dependency.setResultDictionary(resultDictionary);
@@ -388,10 +388,10 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
 
         if(is_global) {
             identifier = children.get(1).getValue();
-
         }else{
             identifier = children.get(0).getValue();
         }
+
         currentState = identifier;
         // 获取state状态
         State state = stateMap.get(identifier);
@@ -592,7 +592,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 if(regex == null || regex.size() == 0){
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_CONDITION_ERROR,0,compileWarnings);
                 }
-                if(condition.getType() == ConditionConstant.JUDGE){
+                if(condition.getType() == ConditionConstant.JUDGE_REGEX || condition.getType() == ConditionConstant.JUDGE_CONTAIN || condition.getType() == ConditionConstant.JUDGE_EXACT){
                     Pattern pattern = Pattern.compile(regex.get(0));
                     condition.setPattern(pattern);
                 }else if(condition.getType() == ConditionConstant.INPUT){
@@ -695,7 +695,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         // 生成一个Condition 和 一个标识符列表
         if(identifierList.size() == 0){
             // 没有输入，相当于使用输入符号识别了一个JUDGE类型的
-            condition = new Condition(ConditionConstant.JUDGE,regexList,0);
+            condition = new Condition(ConditionConstant.JUDGE_CONTAIN,regexList,0);
         }else if(!(2*identifierList.size() + 1 == regexList.size() || 2*identifierList.size() -1 == regexList.size())){
             // 只有一个输入，相当于使用输入符号识别了一个JUDGE类型的
             condition = new Condition(ConditionConstant.INPUT,regexList,identifierList.size());
@@ -796,15 +796,19 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         String regex = node.getValue();
         Character c = regex.charAt(0);
         regex = regex.substring(1,regex.length()-1);
+        int JudegeType = 0;
         if(c == '\''){
+            JudegeType = ConditionConstant.JUDGE_EXACT;
             regexList.add(regex);
         }else if(c == '<'){
+            JudegeType = ConditionConstant.JUDGE_CONTAIN;
             regexList.add(".*" + regex + ".*");
         }else if(c == '`'){
+            JudegeType = ConditionConstant.JUDGE_REGEX;
             regexList.add(regex);
         }
         //
-        Condition condition = new Condition(ConditionConstant.JUDGE,regexList,0);
+        Condition condition = new Condition(JudegeType,regexList,0);
         // 返回一个condition
         return new Result(1,condition,null);
     }

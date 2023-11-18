@@ -17,6 +17,9 @@ public class RobotDependency implements Serializable {
     private Map<Integer,WaitResult> waitResultMap;
     private Map<Integer,TransferNode> defaultResultMap;
 
+    private Boolean suggestion_when_check;
+    private Boolean suggestion_when_pass;
+
     public RobotDependency() {
         transMap = new java.util.HashMap<>(); // 初始化一下
         defaultState = -1; // 默认没有init

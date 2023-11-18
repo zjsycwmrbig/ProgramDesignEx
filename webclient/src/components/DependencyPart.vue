@@ -1,5 +1,6 @@
 <template>
-  <div :class="{box:true,defeat:dependencydata.dependency.id == null}" @click="dataSource.checkoutDependency(dependencydata.index)" @mouseenter="console.log('enter'); delete_class.delete_show = true" @mouseleave="console.log('leave');delete_class.delete_show = false">
+  <div :class="{box:true,defeat:dependencydata.dependency.id == null}" @click="dataSource.checkoutDependency(dependencydata.index)" @mouseenter="delete_class.delete_show = true" @mouseleave="delete_class.delete_show = false">
+    
     <div class="show">
       <div class="name">{{ dependencydata.dependency.name }}</div>
       <div class="description">{{ dependencydata.dependency.description }}</div>
@@ -9,9 +10,10 @@
       <el-icon size="30"><Edit /></el-icon>
     </div>
     
-    <div :class="{delete:true,delete_show:delete_class.delete_show}" >
-      <el-icon size="30"><Delete /></el-icon>
+    <div :class="{delete:true,delete_show:delete_class.delete_show}" @click="dataSource.deleteDependency(dependencydata.index)">
+      <el-icon size="25"><Delete /></el-icon>
     </div>
+    
 
   </div>
 </template>
@@ -101,9 +103,10 @@ export default {
       position:absolute;
       width: 3%;
       height: 100%;
+      border-radius: 3px 0 0 3px;
+      color: transparent;
       background-color: #c2977f;
-      border-radius:  50% 0 0 50%;
-      transition: all 1s;
+      transition: all 0.5s;
     }
     .delete_show{
       display: flex;
@@ -115,8 +118,8 @@ export default {
       top: 0;
     }
     .delete:hover{
-      color: red;
       cursor: pointer;
+      color: #fff;
     }
     .delete:hover{
       width: 30%;

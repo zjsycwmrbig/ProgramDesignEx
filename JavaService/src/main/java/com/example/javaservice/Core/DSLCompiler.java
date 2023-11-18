@@ -1,5 +1,6 @@
 package com.example.javaservice.Core;
 
+import com.example.javaservice.Pojo.Dto.NewDependencyDto;
 import com.example.javaservice.Pojo.Entity.RobotDependency;
 import com.example.javaservice.Result.Result;
 
@@ -13,5 +14,5 @@ public interface DSLCompiler {
 
 
 
-    Result compileByCode(String code, String name, String description);
+    Result compileByCode(NewDependencyDto newDependencyDto);
 }

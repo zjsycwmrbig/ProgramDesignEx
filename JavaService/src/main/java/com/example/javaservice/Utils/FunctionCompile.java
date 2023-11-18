@@ -11,8 +11,10 @@ public class FunctionCompile {
             Integer paramNum = FunctionCompileConstant.FunctionMap.get(functionName);
             List<String> paramList = FunctionCompileConstant.ParamsList.get(paramNum);
             if(paramList.size() != params.size()){
+                // 参数数量不匹配
                 return false;
             }else{
+                // 比较参数 只查看参数的类型
                 for(int i = 0; i < paramList.size(); i++){
                     if(!params.contains(paramList.get(i))){
                         return false;
@@ -21,6 +23,7 @@ public class FunctionCompile {
                 return true;
             }
         }else{
+            // 函数不存在
             return false;
         }
     }

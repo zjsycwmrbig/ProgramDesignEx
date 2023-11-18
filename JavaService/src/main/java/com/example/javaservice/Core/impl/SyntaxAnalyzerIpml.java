@@ -3,6 +3,7 @@ package com.example.javaservice.Core.impl;
 import com.example.javaservice.Constant.AbstractSyntaxConstant;
 import com.example.javaservice.Constant.TokensConstant;
 import com.example.javaservice.Exception.LexiAnalyseException;
+import com.example.javaservice.Exception.SyntaxAnalyseException;
 import com.example.javaservice.Pojo.Entity.AbstractSyntaxNode;
 import com.example.javaservice.Pojo.Entity.AbstractSyntaxTree;
 import com.example.javaservice.Pojo.Entity.Token;
@@ -19,19 +20,23 @@ public class SyntaxAnalyzerIpml implements com.example.javaservice.Core.SyntaxAn
         pointer = 0;// 顺序识别tokens的指针
         int length = tokens.size();// tokens的长度
         Result res = null;
-        while(pointer < length) { //
-            if ((res = variableDeclaration(tokens.subList(pointer, length))) != null) {
-                ast.getRoot().addChild((AbstractSyntaxNode) res.getData());
-                pointer += res.getState();
-                continue;
-            } else if ((res = stateDeclaration(tokens.subList(pointer, length))) != null) {
-                ast.getRoot().addChild((AbstractSyntaxNode) res.getData());
-                pointer += res.getState();
-                continue;
-            } else {
-                ast.logPrint();
-                throw new LexiAnalyseException("从第" + pointer + "个token开始识别失败！ " + "发生在原始->变量|状态", tokens.get(pointer).lineIndex);
+        try {
+            while(pointer < length) { //
+                if ((res = variableDeclaration(tokens.subList(pointer, length))) != null) {
+                    ast.getRoot().addChild((AbstractSyntaxNode) res.getData());
+                    pointer += res.getState();
+                    continue;
+                } else if ((res = stateDeclaration(tokens.subList(pointer, length))) != null) {
+                    ast.getRoot().addChild((AbstractSyntaxNode) res.getData());
+                    pointer += res.getState();
+                    continue;
+                } else {
+                    ast.logPrint();
+                    throw new LexiAnalyseException("从第" + pointer + "个token开始识别失败！ " + "发生在原始->变量|状态", tokens.get(pointer).lineIndex);
+                }
             }
+        } catch (Exception e) {
+            throw new SyntaxAnalyseException("语法分析失败",tokens.get(pointer).lineIndex);
         }
         return ast;
     }

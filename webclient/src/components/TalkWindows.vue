@@ -5,14 +5,23 @@
       <talk-record v-for="(item,index) in messageList" :message="item" :key="index" />
     </div>
     <!-- 百分之10 -->
+    
     <div class="input">
       <!-- 输入框 -->
         <div class="text">
+          <div class="suggestion" v-show="suggestionList.length != 0">
+            <!-- 显示所有的建议 -->
+            <div class="suggestion_item" v-for="(item,index) in suggestionList" :key="index" @click="trans.message = item.inputTemplate">
+              <div class="itemText">
+                {{ item.suggestion }}
+              </div>
+            </div>
+          </div>
           <el-input
             v-model="trans.message"
             class="inputbox"
             @keydown.enter="trans.sendMessage()"
-          />      
+          />
         </div>
         <el-icon size="45"><Promotion /></el-icon>
     </div>
@@ -30,6 +39,9 @@ export default {
     messageList(){
       return this.dataSource.getHistoryData();
     },
+    suggestionList(){
+      return this.dataSource.getSuggestionData();
+    }
   },
   watch:{
     messageList:{
@@ -66,7 +78,7 @@ export default {
   .talks{    
     margin: 3px auto;
     width: 100%;
-    height: 90%;
+    height: 85%;
     border: #000;
     background-color: #242424;
     overflow-y: auto;
@@ -92,11 +104,13 @@ export default {
     width: 100%;
     height: 10%;
     padding: 1%;
+    margin-top: 5%;
     display: flex;
     justify-content: center;
   }
   
   .text{
+    position: relative;
     width: 70%;
     height: 90%;
   }
@@ -104,6 +118,43 @@ export default {
   .inputbox{
     width: 100%;
     height: 100%;
+  }
+
+  .suggestion{
+    position: absolute;
+    top: -3.5vh;
+    left: 0;
+    width: 100%;
+    height: 3vh;
+    z-index: 100;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+  }
+
+  .suggestion_item{
+    height: 100%;
+    color: white;
+    font: 800;
+    border-radius: 1.5vh;
+    border: #c2977f 2px solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    margin-right: 1vw;
+    transition: all 1s;
+    overflow: hidden;
+  }
+
+  .suggestion_item:hover{
+    position:absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+    background-color: #242424;
+    
   }
 
 </style>

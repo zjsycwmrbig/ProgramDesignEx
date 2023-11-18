@@ -14,7 +14,7 @@
 
 <script>
 import { MESSAGE_REQUEST_TYPE } from '../stores/Constant';
-import { info } from '../stores/LOG';
+
 export default {
     // 获得消息列表
     props:['message'],

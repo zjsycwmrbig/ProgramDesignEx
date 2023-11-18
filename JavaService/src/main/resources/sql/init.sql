@@ -11,5 +11,3 @@ create table dependency_map(
     default_state int not null
 )
 # 转移边
-
-

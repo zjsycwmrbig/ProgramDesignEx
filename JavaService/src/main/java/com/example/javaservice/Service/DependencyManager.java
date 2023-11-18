@@ -25,4 +25,9 @@ public interface DependencyManager {
      * 销毁依赖
      */
     public Result destroyDependency(Integer id);
+
+    /**
+     * 针对更新依赖的状态不回滚情况进行处理
+     */
+    public Result updateDependencyState();
 }

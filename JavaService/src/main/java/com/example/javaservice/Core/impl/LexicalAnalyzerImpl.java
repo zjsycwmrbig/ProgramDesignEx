@@ -182,7 +182,6 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                 case TokensConstant.INPUT_FLAG:
                     stream.add(new Token(TokensConstant.INPUT_FLAG,String.valueOf(code.charAt(pointer)),lineIndex));
                     pointer++;
-                    //TODO 这里以后可以加注释功能
                     break;
                 case TokensConstant.DEFAULT:
                     if(code.charAt(pointer) == '\n'){
@@ -205,7 +204,6 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         int state = 0;
         int pointer = 0; // 指针
         while (true){
-
             char c = code.charAt(pointer);
             switch (state) {
                 case 0:

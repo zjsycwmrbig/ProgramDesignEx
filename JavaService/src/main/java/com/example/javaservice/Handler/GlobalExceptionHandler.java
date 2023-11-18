@@ -10,17 +10,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-
     @ExceptionHandler(value = CompileErrorException.class)
     public Result errorHandler(HttpServletRequest request, HttpServletResponse response, CompileErrorException e) {
         e.printStackTrace();
+        System.out.println("编译错误");
         // 根据ErrorException的信息，返回特定的Error信息
-        return new Result(ResultConstant.ERROR,e.warnings,e.line + " " + e.errorMsg);
+        return new Result(ResultConstant.ERROR,e.warnings,e.line + ":" + e.errorMsg);
     }
 
     @ExceptionHandler(value = Exception.class)
     public Result defaultErrorHandler(HttpServletRequest request, HttpServletResponse response, Exception e) {
+        System.out.println("未知错误");
         e.printStackTrace();
         return Result.error("未知错误");
     }

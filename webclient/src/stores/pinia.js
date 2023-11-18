@@ -20,7 +20,7 @@ export const useDataStore = defineStore('data',{
         compileWarning:[], // 编译警告
         compileError:[], // 编译错误
         showState:WELCOME_SHOW, // 显示状态 // 0:显示历史数据 1:显示代码
-        dataSource:[], // 数据源信息,包含id等内容
+        dataSource:[], // 数据源信息,包含id等内容,建议
         dependencyList:[], // 依赖列表
     }),
     actions: {
@@ -34,7 +34,16 @@ export const useDataStore = defineStore('data',{
             })
             info("增加响应: " + respose)
         },
-
+        setSuggestionData(suggestion){
+            this.dataSource[this.index].suggestion = suggestion
+        },
+        getSuggestionData(){
+            if(this.dataSource.length != 0){
+                return this.dataSource[this.index].suggestion    
+            }else{
+                return []
+            }
+        },
         addRequestData(request){
             this.dataSource[this.index].history.push({
                 type: MESSAGE_REQUEST_TYPE,
@@ -45,8 +54,9 @@ export const useDataStore = defineStore('data',{
         },
         // 根据index来切换数据源,更新暂存状态
         async checkoutDependency(to_index){
+            this.compileError = []
+            this.compileWarning = []
             debug("切换数据源" + "index:" + this.index + "to_index:" + to_index)
-            
             if(to_index < this.dataSource.length){
                 if(this.dataSource[to_index].dependency.id == null){
                     info("该数据源未编译,先编译")
@@ -72,6 +82,8 @@ export const useDataStore = defineStore('data',{
                     }
                 })
             }else{
+                // 出错了，恢复到欢迎界面
+                this.showState = WELCOME_SHOW
                 error("切换历史数据源时出错,不存在该数据源")
             }    
         },
@@ -98,12 +110,13 @@ export const useDataStore = defineStore('data',{
                         error("服务器返回的依赖列表不是数组")
                     }else{
                         for(let i = 0;i <dependencys.length;i++){
-                            // 更新dataSource
+                            // 更新dataSource 依赖列表 含有多个数据
                             this.dataSource.push({
                                 index:i,
                                 tempState:0,
                                 history:[],
-                                dependency:dependencys[i]
+                                dependency:dependencys[i],
+                                suggestion:[]
                             })
                         }
                     }
@@ -123,6 +136,8 @@ export const useDataStore = defineStore('data',{
             this.dataSource[this.index].tempState = state
         },
         async pullDependencyCode(to_index){
+            this.compileError = []
+            this.compileWarning = []
             // 获取code代码
             debug("更新代码" + "index:" + to_index)
             
@@ -145,49 +160,90 @@ export const useDataStore = defineStore('data',{
         getDependencyCode(){
             return this.code
         },
-        // 更新数据依赖
-        async updateDependency(){
-            // 函数
-        },
         getShowState(){
             return this.showState
         },
         getDataSource(){
             return this.dataSource
         },
-        async submitCode(){
-            // 提交代码
-            info("提交代码" + this.code)
-            await axios.post(url + 'createByCode',{
-                code:this.code,
-                name:this.getName(),
-                description:this.getDescription()
-            }).then(res=>{
-                if(res.status === 200){
-                    info("提交代码成功")
-                    if(res.data.msg == '编译成功'){
-                        info("编译成功")
-                        // 更新数据源的id 后面使用id给依赖赋值颜色
-                        // 发送通知
-                        ElNotification({
-                            title: '编译成功',
-                            message: '编译成功',
-                            type: 'success',
-                            duration: 1000
-                        })
-                        this.dataSource[this.index].dependency.id = res.data.state
-                        info("更新数据源的id" + res.data.state)
-                        this.compileError = res.data.msg
-                    }else{
-                        info("编译失败")
-                        this.compileError = res.data.msg
-                        this.compileWarning = res.data.data
-                    }
-                }else{
-                    error("提交代码失败")
+        updateCompileInfo(responseData){
+            // 清除原本的警告和错误
+            this.compileError = []
+            this.compileWarning = []
+            // 对 Warning 和 Error 进行处理
+            if(responseData.data != null){
+                for(let i = 0;i < responseData.data.length;i++){
+                    // 拆分出行号和信息
+                    let temp = responseData.data[i].split(':')
+                    // 行号
+                    let line = temp[0]
+                    // 信息
+                    let message = temp[1]
+                    this.compileWarning.push({
+                        line:line,
+                        message:message
+                    })
                 }
-            })
-
+            }
+            if(responseData.msg != null && responseData.msg != ''){
+                let temp = responseData.msg.split(':')
+                if(temp.length == 1){
+                    this.compileError.push({
+                        line:0,
+                        message:temp[0]
+                    })
+                }else{
+                    let line = temp[0]
+                    let message = temp[1]
+                    this.compileError.push({
+                        line:line,
+                        message:message
+                    })
+                }
+            }
+        },
+        async submitCode(){            
+            // 提交代码
+                info("提交代码" + this.code)
+                let editor = useEditorStore()
+                await axios.post(url + 'createByCode',{
+                    id:this.dataSource[this.index].dependency.id,
+                    code:this.code,
+                    name:this.getName(),
+                    description:this.getDescription(),
+                    suggestion_when_check:editor.option_suggestion_when_check,
+                    suggestion_when_pass:editor.option_suggestion_when_pass
+                }).then(res=>{
+                    if(res.status === 200){
+                        info("提交代码成功")
+                        if(res.data.msg == '编译成功'){
+                            // 更新数据源的id 后面使用id给依赖赋值颜色
+                            info("编译成功")
+                            // 发送通知
+                            ElNotification({
+                                title: '编译成功',
+                                message: '编译成功',
+                                type: 'success',
+                                duration: 1000
+                            })
+                            info("更新数据源的id" + res.data.state)
+                            this.dataSource[this.index].dependency.id = res.data.state
+                            this.updateCompileInfo(res.data)
+                        }else{
+                            info("编译失败")
+                            // 发送通知
+                            ElNotification({
+                                title: '编译失败',
+                                message: '编译失败',
+                                type: 'error',
+                                duration: 1000
+                            })
+                            this.updateCompileInfo(res.data)
+                        }
+                    }else{
+                        error("提交代码失败")
+                    }
+                })
         },
         newDependency(){
             // 新建依赖
@@ -215,8 +271,42 @@ export const useDataStore = defineStore('data',{
         },
         getDescription(){
             return this.dataSource[this.index].dependency.description
+        },
+        deleteDependency(index){
+            debug("删除依赖" + "index:" + index)
+            // 本地依赖删除（未编译）
+            if(this.dataSource[index].dependency.id == null){
+                this.dataSource.splice(index,1)
+                if(this.index == index){
+                    this.checkoutDependency(0);
+                }
+                // 删除依赖中的数据
+                this.dependencyList.splice(index,1)
+            }else{
+                // 服务器依赖删除（已编译）
+                axios.get(url + 'delete',{
+                    params:{
+                        id:this.dataSource[index].dependency.id
+                    }
+                }).then(res=>{
+                    if(res.status === 200){
+                        if(res.data.state == 0){
+                            info("删除依赖成功")
+                            this.dataSource.splice(index,1)
+                            this.dependencyList.splice(index,1)
+                            // 更新index
+                            if(this.index == index){
+                                this.checkoutDependency(0)
+                            }
+                        }else{
+                            error("删除依赖失败")
+                        }
+                    }else{
+                        error("删除依赖失败")
+                    }
+                })
+            }
         }
-
     }
 })
 
@@ -283,6 +373,30 @@ export const useUtilsStore = defineStore('utils',{
         },
         RandomDescription(){
             return RANDOM_DESCRIPTION[Math.floor(Math.random() * RANDOM_DESCRIPTION.length)]
+        }
+    }
+})
+
+export const useEditorStore = defineStore('editor',{
+    state: () => ({
+        // editor 为编辑器实例!
+        highLightLine:0,
+        highLightType:'error',
+        DemoCode:'', // 代码范例 指示怎么写代码
+        option_suggestion_when_check:true, // 代码检查时的建议
+        option_suggestion_when_pass:false, // 运行时的建议
+    }),
+    actions: {
+        // 获取代码范例
+        async getDemoCode(){
+            await axios.get(url + 'DemoCode').then(res=>{
+                if(res.status === 200){
+                    let editor = useEditorStore()
+                    editor.DemoCode = res.data
+                }else{
+                    error("获取代码范例失败")
+                }
+            })
         }
     }
 })

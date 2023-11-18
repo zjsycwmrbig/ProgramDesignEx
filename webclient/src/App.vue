@@ -36,9 +36,10 @@ import EditorWindows from './components/EditorWindows.vue';
 import ServiceList from './components/ServiceList.vue';
 import TalkWindows from './components/TalkWindows.vue';
 import WelcomeWindows from './components/WelcomeWindows.vue';
-import { useDataStore, useTryStore } from './stores/pinia'
+import { useDataStore, useEditorStore, useTryStore } from './stores/pinia'
 import { MESSAGE_SHOW, CODE_SHOW, WELCOME_SHOW, websocket } from './stores/Constant'
 import { debug } from './stores/LOG';
+import { jsonParseLinter } from '@codemirror/lang-json';
   export default {
   components: { TalkWindows, ServiceList ,EditorWindows,WelcomeWindows},
   computed:{
@@ -50,16 +51,27 @@ import { debug } from './stores/LOG';
         const tryStore = useTryStore();
         const getTry = tryStore.try1;
         let dataSource = useDataStore();
-        // 创建websocket连接
+        let editorStore = useEditorStore();
+        editorStore.getDemoCode();
         
+        // 创建websocket连接
         const ws = new WebSocket(websocket);
         ws.onopen = function(){
           console.log('连接成功');
         }
         
         ws.onmessage = function(event){
-          // 添加到消息队列
-          dataSource.addResposeData(event.data);
+          console.log(event.data);
+          let wsData = JSON.parse(event.data)
+          
+          if(wsData.type == 'wait_response'){
+            // 添加到消息队列
+            dataSource.addResposeData(wsData.data);
+          }else{
+            // 更新到建议模块
+            dataSource.setSuggestionData(wsData.data);
+          }
+          
         }
 
         return { 

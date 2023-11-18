@@ -3,7 +3,13 @@
     <div class="list">
       <dependency-part v-for="(item,index) in dependency" :key="index" :dependency="item"/>
       <new-dependency/>
+
+      <!-- 添加黑猫GIF -->
+    
+      <div class="blackcat"></div>
+
     </div>
+
 </template>
 
 <script>
@@ -35,6 +41,7 @@ export default {
 
 <style scoped>
 .list{
+    position: relative;
     width: 100%;
     height: 100%;
     background-color: #242424;
@@ -42,5 +49,17 @@ export default {
     padding: 5px;
     overflow: hidden;
     border-right:2px solid #7F7C9B;
+}
+
+.blackcat{
+    position:absolute;
+    bottom: 15px;
+    left: 15px;
+    background-image: url('../assets/blackcat.gif');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    width: 15vw;
+    height: 15vw;
+
 }
 </style>

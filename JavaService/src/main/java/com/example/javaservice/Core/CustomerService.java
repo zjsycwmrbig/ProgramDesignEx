@@ -8,17 +8,17 @@ import com.example.javaservice.Exception.AssembleException;
 import com.example.javaservice.Exception.ResposeGenerateException;
 import com.example.javaservice.Pojo.Entity.*;
 import com.example.javaservice.Result.Result;
-import com.example.javaservice.Utils.FunctionCaller;
+import com.example.javaservice.Result.WebsocketResult;
+import com.example.javaservice.Service.Impl.FunctionCaller;
 import com.example.javaservice.Utils.LOG;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-
-
 import java.io.FileInputStream;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
-
 import java.util.*;
 import java.util.regex.Matcher;
 
@@ -39,6 +39,9 @@ public class CustomerService {
     private static Integer tick = 0;
     private static Integer waitResponse;
     private static Integer waitTarget;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     // 新建线程
     public static Thread thread = new Thread(new Runnable() {
         @Override
@@ -52,7 +55,20 @@ public class CustomerService {
                     }
                     if(client != null && waitTime != 0) {
                         LOG.DEBUG("超时发送");
-                        client.sendMessage(new TextMessage(ResultGenerator(waitResponse,null)));
+                        // 发送超时响应
+                        WebsocketResult websocketResult = new WebsocketResult();
+                        websocketResult.setType(ResultConstant.WAIT_RESPONSE);
+                        websocketResult.setData(ResultGenerator(waitResponse,null));
+                        String json = objectMapper.writeValueAsString(websocketResult);
+                        client.sendMessage(new TextMessage(json));
+                        // 可以设置发送超时响应
+                        if(robotDependency.getSuggestion_when_pass()){
+                            // 把建议发送给客户端 转换成json序列
+                            websocketResult.setType(ResultConstant.SUGGESTION);
+                            websocketResult.setData(SuggestionGenerator().toString());
+                            json = objectMapper.writeValueAsString(websocketResult);
+                            client.sendMessage(new TextMessage(json));
+                        }
                         StateChangeProcessor(waitTarget);
                     }
                     Thread.sleep(SystemConstant.WAIT_TIME);
@@ -78,8 +94,79 @@ public class CustomerService {
         }
     }
 
+    /**
+     * 建议生成器,根据state 和 robotDependency 获得转移列表 生成建议列表
+     * @return
+     */
     public static List<Suggestion> SuggestionGenerator() {
-        return null;
+        // 根据state 和 robotDependency 获得转移列表 生成建议列表
+        List<TransferNode>  TransferList =  robotDependency.getTransMap().get(state).getTransferList();
+        List<Suggestion> suggestionList = new ArrayList<>();
+        if(TransferList == null) {
+            return suggestionList;
+        };
+        // 遍历转移列表，生成建议
+        for(int i = 0;i < TransferList.size();i++){
+            // 比对Condition条件
+            Condition condition = TransferList.get(i).getCondition();
+            Suggestion suggestion = new Suggestion();
+            switch (condition.getType()){
+                case ConditionConstant.JUDGE_EXACT -> {
+                    // 精确匹配
+                    String keyWord = condition.getREGEX().get(0);
+                    suggestion.setSuggestion(keyWord);
+                    suggestion.setInputTemplate(keyWord);
+                    suggestionList.add(suggestion);
+                    break;
+                }
+                case ConditionConstant.JUDGE_CONTAIN -> {
+                    // 包含匹配 也是只有一个关键词
+                    String keyWord = condition.getREGEX().get(0);
+                    // 去除两旁的 .* 如果存在的话
+                    if(keyWord.startsWith(".*")) {
+                        keyWord = keyWord.substring(2);
+                    }
+                    if(keyWord.endsWith(".*")) {
+                        keyWord = keyWord.substring(0,keyWord.length() - 2);
+                    }
+                    suggestion.setSuggestion("猜您想问:" + keyWord);
+                    suggestion.setInputTemplate(keyWord);
+                    suggestionList.add(suggestion);
+                    break;
+                }
+                case ConditionConstant.JUDGE_REGEX -> {
+                    // 正则匹配 需要按照完整的正则表达式进行匹配
+                    String keyWord = condition.getREGEX().get(0);
+                    suggestion.setSuggestion("你可以输入:" + keyWord + "来获取相关信息");
+                    suggestion.setInputTemplate(keyWord + "请修改成您想要的关键词");
+                    suggestionList.add(suggestion);
+                    break;
+                }
+                case ConditionConstant.INPUT -> {
+                    // 输入模式 关键词不再是一个
+                    String suggestionStr = "您可以输入:";
+                    for(int j = 0;j < condition.getREGEX().size();j++) {
+                        suggestionStr += condition.getREGEX().get(j) ;
+                        if(j != condition.getREGEX().size() - 1) {
+                            suggestionStr += "xxx";
+                        }
+                    }
+                    suggestionStr += "来获取相关信息";
+                    String inputTemplateStr = "";
+                    for(int j = 0;j < condition.getREGEX().size();j++) {
+                        inputTemplateStr += condition.getREGEX().get(j) ;
+                        if(j != condition.getREGEX().size() - 1) {
+                            inputTemplateStr += "xxx";
+                        }
+                    }
+                    suggestion.setInputTemplate(inputTemplateStr);
+                    suggestion.setSuggestion(suggestionStr);
+                    suggestionList.add(suggestion);
+                    break;
+                }
+            }
+        }
+        return suggestionList;
     }
 
 
@@ -153,6 +240,17 @@ public class CustomerService {
         if(targetState != -1){
             state = targetState;
             resetWaitResponse(); // 状态更新也要更新等待响应模块
+            if(robotDependency.getSuggestion_when_check()){
+                try {
+                    WebsocketResult websocketResult = new WebsocketResult();
+                    websocketResult.setType(ResultConstant.SUGGESTION);
+                    websocketResult.setData(SuggestionGenerator());
+                    String json = objectMapper.writeValueAsString(websocketResult);
+                    client.sendMessage(new TextMessage(json));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             return Result.success();
         }else{
             return Result.error();
@@ -176,7 +274,6 @@ public class CustomerService {
             robotDependency = (RobotDependency) obj;
             resultDictionary = robotDependency.getResultDictionary();
             defaultResultMap = robotDependency.getDefaultResultMap();
-
             if(assembleState == null){
                 state = robotDependency.getDefaultState();
             }else{
@@ -196,7 +293,7 @@ public class CustomerService {
             return null;
         }
 
-        if(condition.getType() == ConditionConstant.JUDGE){
+        if(condition.getType() == ConditionConstant.JUDGE_REGEX || condition.getType() == ConditionConstant.JUDGE_CONTAIN || condition.getType() == ConditionConstant.JUDGE_EXACT){
             if(inputStr.matches(condition.getPattern().pattern())){
                 return Result.success();
             }else{
@@ -251,7 +348,6 @@ public class CustomerService {
                 params.put(entry.getKey(),ResultGenerator(entry.getValue(),inputs));
             }
 
-
             return FunctionCaller.Caller(result.getValue(),params);
         }else if(Objects.equals(result.getType(), SemanticAnalysisConstant.INPUT_VARIABLE_RESULT)){
             // 需要导入的参数进行赋值处理，参数在params中，这个节点的vaule是变量名称
@@ -275,5 +371,9 @@ public class CustomerService {
         // 测试性装填
         robotDependency = robot;
         resultDictionary = robot.getResultDictionary();
+    }
+
+    public static void resetState() {
+        state = robotDependency.getDefaultState();
     }
 }
