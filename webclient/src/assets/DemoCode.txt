@@ -1,0 +1,15 @@
+zjs = 15665777392
+
+global s {
+  '新东':return "我认识他,他是我舍友"
+  <电话>:return zjs goto g
+  default : return "听不懂"
+}
+
+g {
+  default:return "其他电话"
+}
+
+z {
+  wait 10:return "超时请求!"
+}
