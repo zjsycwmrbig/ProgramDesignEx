@@ -67,11 +67,12 @@ import { jsonParseLinter } from '@codemirror/lang-json';
           if(wsData.type == 'wait_response'){
             // 添加到消息队列
             dataSource.addResposeData(wsData.data);
-          }else{
+          }else if(wsData.type == 'suggestion'){
             // 更新到建议模块
             dataSource.setSuggestionData(wsData.data);
+          }else{
+            dataSource.addResposeData(wsData.data);
           }
-          
         }
 
         return { 

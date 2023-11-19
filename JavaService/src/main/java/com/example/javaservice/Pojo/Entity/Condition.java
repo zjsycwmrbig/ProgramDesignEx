@@ -30,4 +30,20 @@ public class Condition implements java.io.Serializable{
         pattern = null;
         params = new ArrayList<>();
     }
+
+    public Boolean equals (Condition condition){
+        if(this.type != condition.type){
+            return false;
+        }
+        if(this.REGEX.size() != condition.REGEX.size()){
+            return false;
+        }
+        for(int i = 0; i < this.REGEX.size(); i++){
+            if(!this.REGEX.get(i).equals(condition.REGEX.get(i))){
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

@@ -5,10 +5,10 @@ import lombok.Data;
 @Data
 public class CompileWarning {
     private String msg; // 哪一行出现问题
-    private int warningType;
+    private int warningLine;
 
-    public CompileWarning(String msg, Integer warningType) {
+    public CompileWarning(String msg, Integer warningLine) {
         this.msg = msg;
-        this.warningType = warningType;
+        this.warningLine = warningLine;
     }
 }

@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
@@ -29,12 +26,13 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
     private List<Integer> globalState; // 全局状态集合
     // 这个是生成的转换表
     private Map<Integer, TransferList> transMap;
-    // TODO 填充这两个东西,一个状态只能有一个默认响应体,并且在最后的全局状态中,不存在默认响应体的进行添加
+
     // 超时响应体
     private Map<Integer,WaitResult> waitResult;
     // 默认响应体
     private Map<Integer,TransferNode> defaultResult;
-
+    // hello响应体
+    private Map<Integer,TransferNode> HelloMap;
     // 工具结构体
     private Map<String,Integer> resultMap; // 主要是看是否有重复的结果可以利用
     Map<String, Variable> variableMap;
@@ -56,36 +54,96 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         waitResult = new java.util.HashMap<>();
         defaultResult = new java.util.HashMap<>();
         currentState = null;
+        HelloMap = new java.util.HashMap<>();
     }
 
     @Override
     public Map<String,Object> analyse(AbstractSyntaxTree ast) {
         Result res = null;
+
         // 先扫描 出现错误 就 直接抛出 理论上不返回 生成映射表
         if((res = identifierScan(ast.getRoot())) != null){
-
             // 根据是变量还是状态来分析判断
             List<AbstractSyntaxNode> children = ast.getRoot().getChildren();
+
             for(int i = 0;i < children.size();i++){
                 AbstractSyntaxNode child = children.get(i);
                 if(child.getType() == AbstractSyntaxConstant.VARIABLE_DEFINE) {
                     // 变量定义
                     if ((variableAnalysis(child,i)) == null) {
-                        logPrint();
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_ANALYZE_VARIABLE_DEFEAT,child.getLine(),compileWarnings);
                     }
                 }else if(child.getType() == AbstractSyntaxConstant.STATE_DEFINE) {
                     // 状态定义 进入状态分析
                     if((res = stateAnalysis(child)) == null){
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_ANALYZE_STATE_DEFEAT,child.getLine(),compileWarnings);
+                    }else{
+                        // TODO 是否是非全局变量存在default关键字并且逻辑中 没有goto CHANGE 3
+                        if(defaultResult.containsKey(stateMap.get(currentState).getId()) && !stateMap.get(currentState).getIsGlobal()){
+                            // 说明这个状态有default 检查所有的转移列表是否有goto
+                            TransferList transferList = transMap.get(stateMap.get(currentState).getId());
+                            if(transferList == null || transferList.getTransferList().size() == 0){
+                                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_DEFAULT,child.getLine()));
+                            }
+                            for(TransferNode transferNode : transferList.getTransferList()){
+                                if(!transferNode.HasGotoState()){
+                                    compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_DEFAULT,child.getLine()));
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }else{
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,child.getLine(),compileWarnings);
                 }
             }
         }else{
-            return null;
+            throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_FAIL,1,compileWarnings);
         }
+        // 扫描Transfer 查看是否存在无法到达的状态
+        List<Integer> tempStateList = new java.util.ArrayList<>();
+        Map<Integer,State> tempStateMap = new java.util.HashMap<>();
+        List<AbstractSyntaxNode> children = ast.getRoot().getChildren();
+        Queue<Integer> queue = new java.util.LinkedList<>();
+        Map<Integer,Boolean> visited = new java.util.HashMap<>();
+        for(String key : stateMap.keySet()){
+            visited.put(stateMap.get(key).getId(),false);
+            tempStateMap.put(stateMap.get(key).getId(),stateMap.get(key));
+        }
+
+        for(Integer stateId : globalState){
+            queue.add(stateId);
+            visited.put(stateId,true);
+        }
+
+        while (!queue.isEmpty()){
+            Integer stateId = queue.poll();
+            TransferList transferList = transMap.get(stateId);
+
+            if(transferList != null && transferList.getTransferList().size() > 0){
+                for(TransferNode transferNode : transferList.getTransferList()){
+                    if(transferNode.HasGotoState()){
+                        if(!visited.get(transferNode.getGotoState())){
+                            visited.put(transferNode.getGotoState(),true);
+                            queue.add(transferNode.getGotoState());
+                        }
+                    }
+                }
+            }
+        }
+
+//        if(tempStateList.size() > 0){
+//            for(Integer stateId : tempStateList){
+//                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_UNREACHABLE,children.get(tempStateMap.get(stateId).getIndex()).getLine()));
+//            }
+//        }
+
+        for(Integer stateId : visited.keySet()){
+            if(!visited.get(stateId)){
+                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_UNREACHABLE,children.get(tempStateMap.get(stateId).getIndex()).getLine()));
+            }
+        }
+
         // 生成依赖
         RobotDependency dependency = new RobotDependency();
         dependency.setDefaultState(defaultState);
@@ -97,38 +155,42 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         dependency.setResultDictionary(resultDictionary);
         dependency.setDefaultResultMap(defaultResult);
         dependency.setWaitResultMap(waitResult);
-
+        dependency.setHelloMap(HelloMap);
         Map<String,Object> complexResult = new java.util.HashMap<>();
         complexResult.put("robotDependency",dependency);
         complexResult.put("compileWarnings",compileWarnings);
-
         return complexResult;
     }
 
     @Override
     public Result identifierScan(AbstractSyntaxNode node) {
+
         if(node.getType() != AbstractSyntaxConstant.BEGIN_NODE){
             // 默认第一行出现这个错误
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,1,compileWarnings);
         }
+
         List<AbstractSyntaxNode> children = node.getChildren();
 
         for(int i = 0;i < children.size();i++){
             AbstractSyntaxNode child = children.get(i);
             if(child.getType() == AbstractSyntaxConstant.VARIABLE_DEFINE){
                 if(child.getChildren() == null || child.getChildren().size() == 0){
-                    // 变量定义的子节点只能有一个
+                    // 不符合语法分析结果
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,child.getLine(),compileWarnings);
                 }
+
+                // 获得变量名
                 String identifier = child.getChildren().get(0).getValue();
 
-                // 变量定义
+                // 一个变量可以 多次定义 但是需要减少这样的使用
                 if(variableMap.containsKey(identifier)){
-                    // TODO 这个地方能不能直接get然后put？
                     variableMap.put(identifier,variableMap.get(identifier).addVariable(new VariableSlice(i,child.getType(),SemanticAnalysisConstant.UNKNOWN_RESULT)));
+                    compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_IDENTIFIER_SCAN_MUTI_VARIABLE,child.getLine()));
                 }else{
                     variableMap.put(identifier,new Variable().addVariable(new VariableSlice(i,child.getType(),SemanticAnalysisConstant.UNKNOWN_RESULT)));
                 }
+
                 // 检查是否存在状态定义 已经存在状态定义在先就增加警告
                 if(stateMap.containsKey(identifier)){
                     compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_IDENTIFIER_SCAN_V_S_REPEAT,child.getLine()));
@@ -137,13 +199,16 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 if(child.getChildren() == null || child.getChildren().size() < 2){
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,child.getLine(),compileWarnings);
                 }
+
                 boolean is_global = child.getChildren().get(0).getValue().equals("global");
                 String identifier = null;
+
                 if(is_global){
                     identifier = child.getChildren().get(1).getValue();
                 }else{
                     identifier = child.getChildren().get(0).getValue();
                 }
+
                 // 状态定义
                 if(stateMap.containsKey(identifier)){
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_STATE_REPEAT,child.getLine(),compileWarnings);
@@ -187,12 +252,14 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         List<AbstractSyntaxNode> children = father.getChildren();
         // 判断是否存在 标识符
         AbstractSyntaxNode node = children.get(IDENTIFIER);
+
         if(!variableMap.containsKey(node.getValue())){
-            // 不管index都不存在，直接错误抛出
+            // 存在未曾扫描的标识符
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_VARIABLE_NOT_FOUND,node.getLine(),compileWarnings);
         }else{
             // 存在标识符，但是index不知道是否满足
             VariableSlice variableSlice = variableMap.get(node.getValue()).getVariableSlice(index);
+
             if(variableSlice == null) {
                 // 当前index没有合适的变量
                 throw new CompileErrorException(CompileErrorConstant.SEMANTIC_VARIABLE_LOCATION_ERROR,node.getLine(),compileWarnings);
@@ -207,6 +274,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 }else if(variableSlice.getResultId() == SemanticAnalysisConstant.UNKNOWN_RESULT){
                     // 未定义的结果,需要递归分析出结果,返回的是一个结果ID,这里的index也是父节点的index
                     Result result = resultAnalysis(children.get(RESULT_INDEX),index,null);
+
                     if(result != null){
                         // 更新 variableMap 把state的值放进去
                         variableMap.get(node.getValue()).getVariableSlice(index).setResultId(result.getState());
@@ -222,10 +290,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         return Result.success();
     }
 
-
-
-
-
+    // inputs
     private Result functionAnalysis(AbstractSyntaxNode node,int index,List<String> inputs) {
         if(node.getType() != AbstractSyntaxConstant.FUNCTION_DEFINE){
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,node.getLine(),compileWarnings);
@@ -254,10 +319,10 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,node.getLine(),compileWarnings);
         }
 
-
         // 查看是否存在输入，并且判断是否产生警告
         Map<String,Boolean> inputFlagMap = new java.util.HashMap<>();
         Boolean hasInput = false;
+
         if(inputs != null && inputs.size() > 0){
             hasInput = true;
             for(int i = 0;i < inputs.size();i++){
@@ -357,11 +422,11 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
             parameterNameList.add(key);
         }
 
+        Result result = FunctionCompile.compile(functionName, parameterNameList);
         // 对于函数的参数，调用系统的工具来检查是否正确
-        if(!FunctionCompile.compile(functionName, parameterNameList)){
-            throw new CompileErrorException(CompileErrorConstant.SEMANTIC_FUNCTION_COMPILE_ERROR,node.getLine(),compileWarnings);
+        if(result.getState() == ResultConstant.ERROR){
+            throw new CompileErrorException(CompileErrorConstant.SEMANTIC_FUNCTION_COMPILE_ERROR + " " + result.getMsg(),node.getLine(),compileWarnings);
         }else{
-            // TODO 这里需要把函数的结果也存起来 下面这个map有没有必要？
             // 找到函数的名称
             AbstractSyntaxNode FunctionNameNode = node.getChildren().get(0);
             if(FunctionNameNode.getType() != TokensConstant.FUNCTION){
@@ -402,7 +467,6 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         }
 
         // 分析逻辑
-
         TransferList logicList = new TransferList();
         for(int i = 0;i < children.size();i++){
             AbstractSyntaxNode child = children.get(i);
@@ -412,8 +476,15 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 if(result == null) {
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST, node.getLine(), compileWarnings);
                 }else if(result.getState() == ResultConstant.SUCCESS){
+                    TransferNode resNode = (TransferNode) result.getData();
                     // 处理返回的transfer
-                    logicList.addTransfer((TransferNode) result.getData());
+                    logicList.addTransfer(resNode);
+                    // TODO 判别逻辑定义是否存在重复 CHANGE 1
+                    for(int j = 0;j < logicList.getTransferList().size() - 1;j++){
+                        if(logicList.getTransferList().get(j).LogicEquals(resNode)){
+                            throw new CompileErrorException(CompileErrorConstant.SEMANTIC_LOGIC_REDEFINE,node.getLine(),compileWarnings);
+                        }
+                    }
                 }
                 // 处理一下
             }else{
@@ -429,8 +500,6 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
     @Override
     public Result logicAnalysis(AbstractSyntaxNode node, int index) {
         // 匹配符 关键字 结果表示
-
-        // TODO 增加wait 和 default 支持
         if(node.getType() != AbstractSyntaxConstant.LOGIC_DEFINE){
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,node.getLine(),compileWarnings);
         }
@@ -491,10 +560,10 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 throw new CompileErrorException(CompileErrorConstant.SEMANTIC_MATCH_ERROR,match_input_Node.getLine(),compileWarnings);
             }else{
                 // 生成一个条件转移节点，后续没有别的处理
-                     transferNode.setCondition((Condition) res.getData());
+                transferNode.setCondition((Condition) res.getData());
             }
         }else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("default")){
-            //TODO 默认 查看是否存在default状态匹配
+            // 默认
             treatInGlobal = true;
             if(stateMap.containsKey(currentState)){
                 if(defaultResult.containsKey(stateMap.get(currentState).getId())){
@@ -505,7 +574,6 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 throw new CompileErrorException(CompileErrorConstant.STATE_MAP_ERROR,match_input_Node.getLine(),compileWarnings);
             }
         }else if(match_input_Node.getType() == AbstractSyntaxConstant.WAIT_DEFINE) {
-            // TODO 超时相应模式
             treatInGlobal = true;
             if(match_input_Node.getChildren().size() != 2){
                 throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
@@ -533,6 +601,17 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                     }
                 }
             }
+        } else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("begin")){
+            // 对HelloMap进行映射处理
+            treatInGlobal = true;
+            if(stateMap.containsKey(currentState)){
+                if(HelloMap.containsKey(stateMap.get(currentState).getId())){
+                    // 已经存在欢迎
+                    throw new CompileErrorException(CompileErrorConstant.THERE_ARE_NOT_ONE_BEGIN,match_input_Node.getLine(),compileWarnings);
+                }
+            }else{
+                throw new CompileErrorException(CompileErrorConstant.STATE_MAP_ERROR,match_input_Node.getLine(),compileWarnings);
+            }
         } else{
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
         }
@@ -559,6 +638,10 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                     throw new CompileErrorException(CompileErrorConstant.SEMANTIC_STATE_NOT_FOUND, targetState_Node.getLine(), compileWarnings);
                 }else{
                     transferNode.setTargetState(stateMap.get(targetState_Node.getValue()).getId());
+                    // TODO 如果goto到达的是本状态 ， 进行警告 CHANGE 2
+                    if(stateMap.get(targetState_Node.getValue()).getId() == stateMap.get(currentState).getId()){
+                        compileWarnings.add(new CompileWarning(CompileWarningConstant.GOTO_SELF,targetState_Node.getLine()));
+                    }
                 }
             }
         }
@@ -569,8 +652,10 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 // 超时状态
                 waitResult.get(stateMap.get(currentState).getId()).setResultID(transferNode.getResultID());
                 waitResult.get(stateMap.get(currentState).getId()).setTargetState(transferNode.getTargetState());
-            }else{
+            }else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("default")){
                 defaultResult.put(stateMap.get(currentState).getId(),transferNode);
+            }else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("begin")){
+                HelloMap.put(stateMap.get(currentState).getId(),transferNode);
             }
             return new Result(ResultConstant.GLOBAL_TREAT,null,null);
         }else{
@@ -734,7 +819,6 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_RESULT_IDENTIFIER_NOT_SOLVED,child.getLine(),compileWarnings);
                     }
                 }
-                // TODO 存在未定义变量，但是params中含有这个变量
                 else if(params.contains(child.getValue())){ // 理论上只要需要的在params里面就可以实现
                     // 代表是一个代填充结果
                     Integer id = resultDictionary.addCompileResult(new CompileResult(SemanticAnalysisConstant.INPUT_VARIABLE_RESULT, child.getValue(), null));

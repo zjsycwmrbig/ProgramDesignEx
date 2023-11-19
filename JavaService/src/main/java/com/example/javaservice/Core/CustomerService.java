@@ -12,8 +12,6 @@ import com.example.javaservice.Result.WebsocketResult;
 import com.example.javaservice.Service.Impl.FunctionCaller;
 import com.example.javaservice.Utils.LOG;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import java.io.FileInputStream;
@@ -32,9 +30,8 @@ public class CustomerService {
     private static RobotDependency robotDependency;
     private static ResultDictionary resultDictionary;
     private static Map<Integer,TransferNode> defaultResultMap;
-
+    // 通信专用
     public static WebSocketSession client;
-
     private static Integer waitTime = 0;
     private static Integer tick = 0;
     private static Integer waitResponse;
@@ -239,12 +236,29 @@ public class CustomerService {
     private static Result StateChangeProcessor(Integer targetState){
         if(targetState != -1){
             state = targetState;
+            // 等待时间相关
             resetWaitResponse(); // 状态更新也要更新等待响应模块
+            // 建议相关
             if(robotDependency.getSuggestion_when_check()){
                 try {
                     WebsocketResult websocketResult = new WebsocketResult();
                     websocketResult.setType(ResultConstant.SUGGESTION);
                     websocketResult.setData(SuggestionGenerator());
+                    String json = objectMapper.writeValueAsString(websocketResult);
+                    client.sendMessage(new TextMessage(json));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            // Say Hello 相关
+            if(robotDependency.getHelloMap().containsKey(state)){
+                // 这个状态下有Say Hello
+                try {
+                    WebsocketResult websocketResult = new WebsocketResult();
+                    websocketResult.setType(ResultConstant.SAY_HELLO);
+                    TransferNode helloNode = robotDependency.getHelloMap().get(state);
+                    String hello = ResultGenerator(helloNode.getResultID(), null);
+                    websocketResult.setData(hello);
                     String json = objectMapper.writeValueAsString(websocketResult);
                     client.sendMessage(new TextMessage(json));
                 } catch (IOException e) {
@@ -275,9 +289,9 @@ public class CustomerService {
             resultDictionary = robotDependency.getResultDictionary();
             defaultResultMap = robotDependency.getDefaultResultMap();
             if(assembleState == null){
-                state = robotDependency.getDefaultState();
+                StateChangeProcessor(robotDependency.getDefaultState());
             }else{
-                state = assembleState; // 装配的状态
+                StateChangeProcessor(assembleState);
             }
 
             LOG.INFO("默认状态: " + state);
@@ -374,6 +388,6 @@ public class CustomerService {
     }
 
     public static void resetState() {
-        state = robotDependency.getDefaultState();
+        if(robotDependency != null) state = robotDependency.getDefaultState();
     }
 }

@@ -171,21 +171,19 @@ export const useDataStore = defineStore('data',{
             this.compileError = []
             this.compileWarning = []
             // 对 Warning 和 Error 进行处理
+
             if(responseData.data != null){
                 for(let i = 0;i < responseData.data.length;i++){
-                    // 拆分出行号和信息
-                    let temp = responseData.data[i].split(':')
-                    // 行号
-                    let line = temp[0]
+                    let line = responseData.data[i].warningLine
                     // 信息
-                    let message = temp[1]
+                    let message = responseData.data[i].msg
                     this.compileWarning.push({
                         line:line,
                         message:message
                     })
                 }
             }
-            if(responseData.msg != null && responseData.msg != ''){
+            if(responseData.msg != null && responseData.msg != '' && responseData.msg != '编译成功'){
                 let temp = responseData.msg.split(':')
                 if(temp.length == 1){
                     this.compileError.push({

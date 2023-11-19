@@ -7,4 +7,5 @@ public class ResultConstant {
     public static final String WAIT_RESPONSE = "wait_response";
     public static final String SUGGESTION = "suggestion";
 
+    public static final String SAY_HELLO = "say_hello";
 }

@@ -9,7 +9,7 @@
     <div class="input">
       <!-- 输入框 -->
         <div class="text">
-          <div class="suggestion" v-show="suggestionList.length != 0">
+          <div class="suggestion" v-show="suggestionList!=null&&suggestionList.length != 0">
             <!-- 显示所有的建议 -->
             <div class="suggestion_item" v-for="(item,index) in suggestionList" :key="index" @click="trans.message = item.inputTemplate">
               <div class="itemText">
@@ -17,11 +17,13 @@
               </div>
             </div>
           </div>
+
           <el-input
             v-model="trans.message"
             class="inputbox"
             @keydown.enter="trans.sendMessage()"
           />
+
         </div>
         <el-icon size="45"><Promotion /></el-icon>
     </div>
@@ -107,17 +109,20 @@ export default {
     margin-top: 5%;
     display: flex;
     justify-content: center;
+    background-color: #242424;
   }
   
   .text{
     position: relative;
     width: 70%;
     height: 90%;
+    background-color: #242424;
   }
 
   .inputbox{
     width: 100%;
     height: 100%;
+    background-color: #242424;
   }
 
   .suggestion{
@@ -143,7 +148,7 @@ export default {
     align-items: center;
     padding: 15px;
     margin-right: 1vw;
-    transition: all 1s;
+    transition: all 2s;
     overflow: hidden;
   }
 
@@ -154,7 +159,6 @@ export default {
     left: 0;
     cursor: pointer;
     background-color: #242424;
-    
   }
 
 </style>

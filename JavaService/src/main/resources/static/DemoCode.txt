@@ -1,15 +1,36 @@
-zjs = 15665777392
+// 变量定义
+my_telephone = 15665777392
+What_I_can_do = "我是一款智能客服机器人,支持查询电话等功能,欢迎使用!"
 
-global s {
-  '新东':return "我认识他,他是我舍友"
-  <电话>:return zjs goto g
-  default : return "听不懂"
+// global 是全局状态 也就是在任何状态下都可以访问
+// 但是 当下状态优先级最高
+global Hello {
+  begin:return "你好,我是__name__,我的人生格言是__description__,如有问题,请联系" + my_telephone
+
+  '你可以干什么':return What_I_can_do // 准确发送才能匹配
+  <会什么> : return What_I_can_do // 模糊发送也能匹配
+  `.*你.*能.*什么`: return What_I_can_do // 支持自定义正则匹配
+
+  <我要退货> : return "请稍等,正在联系相关部门" goto SaleAfter
+  <我要购物> : return "欢迎光临" goto Shop
+  default : return "对不起,我没有明白您的意思,您可以尝试使用建议重新询问!" // 无法匹配时的回复
+  wait 10 : return "还在吗?可以点击下方建议询问!" // 超时后发送的内容
 }
 
-g {
-  default:return "其他电话"
+SaleAfter {
+  begin:return "请问您是要退货吗?"
+  '是' : return "好的,正在打开电话簿!" goto QueryTelephone
+  default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
 }
 
-z {
-  wait 10:return "超时请求!"
+QueryTelephone {
+  begin:return "请问您要查询哪个部门的电话?您可以使用:'查询xxx的电话'这样的格式来查询!"
+  ["查询".somebody."的电话"] : return "正在查询" + somebody + "的电话,请稍等! "+ somebody + "的电话是" + Query($tb="telephone",$id=somebody) + "!" goto QueryTelephone
+  default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
+}
+
+Shop{
+    begin:return "请问您要购买什么?"
+    ["购买".st] : return "正在购买" + st + "请稍等! 购买成功!欢迎下次光临!"
+    default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
 }

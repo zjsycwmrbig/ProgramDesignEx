@@ -31,4 +31,24 @@ public class TransferNode implements Serializable{
         this.resultID = resultID;
         this.targetState = targetState;
     }
+
+    public Boolean LogicEquals(TransferNode transferNode){
+        if(this.condition.equals(transferNode.condition)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public Boolean HasGotoState(){
+        if(this.targetState == -1){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    public int getGotoState() {
+        return targetState;
+    }
 }

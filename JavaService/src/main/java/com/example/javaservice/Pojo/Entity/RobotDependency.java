@@ -16,7 +16,7 @@ public class RobotDependency implements Serializable {
     private Map<String,Integer> stateMap;
     private Map<Integer,WaitResult> waitResultMap;
     private Map<Integer,TransferNode> defaultResultMap;
-
+    private Map<Integer,TransferNode> HelloMap;
     private Boolean suggestion_when_check;
     private Boolean suggestion_when_pass;
 

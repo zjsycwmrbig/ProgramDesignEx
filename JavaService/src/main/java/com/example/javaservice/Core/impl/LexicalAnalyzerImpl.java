@@ -19,6 +19,7 @@ import java.util.Map;
 public class LexicalAnalyzerImpl implements com.example.javaservice.Core.LexicalAnalyzer{
     private Map<Character,Integer> stateMap;
     private Integer lineIndex;
+
     public LexicalAnalyzerImpl() {
         lineIndex = 1;
         stateMap = new HashMap<>();
@@ -67,6 +68,9 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         stateMap.put('\n',TokensConstant.DEFAULT);
         // 参数
         stateMap.put('$',TokensConstant.PARAMETER);
+
+        // 注释
+        stateMap.put('/',TokensConstant.COMMENT);
     }
 
     @Override
@@ -83,12 +87,13 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                 code += '\n';
             }
         }
+
         // 拆解成字节流
         int codeLength = code.length();
         int pointer = 0;
+
         // 词法分析结果
         List<Token> stream = new ArrayList<>();
-        // TODO 这个map有点多余
         Map<Integer,List<String>> map = new HashMap<>();
         map.put(TokensConstant.KEYWORD,new ArrayList<>());
         map.put(TokensConstant.IDENTIFIER,new ArrayList<>());
@@ -99,18 +104,22 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         map.put(TokensConstant.MATCHMAKER,new ArrayList<>());
         map.put(TokensConstant.FUNCTION,new ArrayList<>());
         map.put(TokensConstant.PARAMETER,new ArrayList<>());
+
         Result res = null;
+
         while(pointer < codeLength) {
             // 识别token
             if(stateMap.get(code.charAt(pointer)) == null){
-                throw new LexiAnalyseException("非法字符", lineIndex);
+                System.out.println("illegal char: " + code.charAt(pointer) + " " + pointer);
+                throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_CHAR, lineIndex);
             }
+
             switch (stateMap.get(code.charAt(pointer))) {
                 case TokensConstant.IDENTIFIER:
                     // identifier
                     res = identifierMach(code.substring(pointer));
                     if(res.getState() == ResultConstant.ERROR){
-                        throw new LexiAnalyseException("标识符错误", lineIndex);
+                        throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_IDENTIFIER, lineIndex);
                     }else if (res.getState() == TokensConstant.KEYWORD){
                         // keyword
                         stream.add(new Token(TokensConstant.KEYWORD,(String)res.getData(),lineIndex));
@@ -132,7 +141,7 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     // number
                     res = numberMach(code.substring(pointer));
                     if(res.getState() == ResultConstant.ERROR){
-                        throw new LexiAnalyseException("数字错误",lineIndex);
+                        throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_NUMBER,lineIndex);
                     }else{
                         stream.add(new Token(TokensConstant.NUMBER,(String)res.getData(),lineIndex));
                         map.get(TokensConstant.NUMBER).add((String)res.getData());
@@ -143,7 +152,7 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     // string
                     res = stringMach(code.substring(pointer));
                     if(res.getState() == ResultConstant.ERROR){
-                        throw new LexiAnalyseException("字符串错误",lineIndex);
+                        throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_STRING,lineIndex);
                     }else{
                         stream.add(new Token(TokensConstant.STRING,(String)res.getData(),lineIndex));
                         map.get(TokensConstant.STRING).add((String)res.getData());
@@ -166,7 +175,7 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     // matchmaker
                     res = matchmakerMach(code.substring(pointer));
                     if(res.getState() == ResultConstant.ERROR){
-                        throw new LexiAnalyseException("匹配符错误",lineIndex);
+                        throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_MATCHER,lineIndex);
                     }else{
                         stream.add(new Token(TokensConstant.MATCHMAKER,(String)res.getData(),lineIndex));
                         map.get(TokensConstant.MATCHMAKER).add((String)res.getData());
@@ -183,6 +192,13 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     stream.add(new Token(TokensConstant.INPUT_FLAG,String.valueOf(code.charAt(pointer)),lineIndex));
                     pointer++;
                     break;
+                case TokensConstant.COMMENT:
+                    // comment 识别到换行符
+                    pointer++;
+                    while (code.charAt(pointer) != '\n'){
+                        pointer++;
+                    }
+                    break;
                 case TokensConstant.DEFAULT:
                     if(code.charAt(pointer) == '\n'){
                         lineIndex++;
@@ -190,11 +206,13 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     pointer++;
                     break;
                 case TokensConstant.ERROR:
-                    throw new LexiAnalyseException("含有未定义的非法字符",lineIndex);
+                    throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_CHAR,lineIndex);
                 default:
-                    throw new LexiAnalyseException("含有字码大于256的非法字符，请检查是否存在传输错误",lineIndex);
+                    throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_CODE,lineIndex);
             }
         }
+        // 打印log
+        logPrint(new Tokens(stream,map));
         return new Tokens(stream,map);
     }
 
@@ -204,6 +222,9 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         int state = 0;
         int pointer = 0; // 指针
         while (true){
+            if(pointer >= code.length()){
+                return Result.error();
+            }
             char c = code.charAt(pointer);
             switch (state) {
                 case 0:
@@ -238,7 +259,9 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         int state = 0;
         int pointer = 0; // 指针
         while (true){
-
+            if(pointer >= code.length()){
+                return Result.error();
+            }
             char c = code.charAt(pointer);
             switch (state) {
                 case 0:
@@ -251,8 +274,10 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                 case 1:
                     if (c >= '0' && c <= '9'){
                         state = 1;
-                    }else {
+                    }else if(stateMap.get(c) != TokensConstant.IDENTIFIER){
                         return new Result(TokensConstant.NUMBER,code.substring(0,pointer),null);
+                    }else{
+                        return Result.error();
                     }
                     break;
                 default:
@@ -268,7 +293,9 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         int state = 0;
         int pointer = 0; // 指针
         while (true){
-
+            if(pointer >= code.length()){
+                return Result.error();
+            }
             char c = code.charAt(pointer);
             switch (state) {
                 case 0:
@@ -306,6 +333,9 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
         int pointer = 0; // 指针
         char endChar = code.charAt(0);
         while (true){
+            if(pointer >= code.length()){
+                return Result.error();
+            }
             char c = code.charAt(pointer);
             switch (state) {
                 case 0:
@@ -361,6 +391,4 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
             e.printStackTrace();
         }
     }
-
-
 }
