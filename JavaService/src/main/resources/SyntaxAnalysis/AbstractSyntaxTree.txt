@@ -1,2 +1,0 @@
-AbstractSyntaxTree:
-|__type:LOGIC_DEFINE value: line:-1 children:0

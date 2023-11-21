@@ -1,13 +1,11 @@
 <template>
     <div class="welcome" v-show="dataSource.showState == WELCOME_SHOW">
-        <div class="welcome-title">
-            <h1>欢迎使用</h1>
-        </div>
-        <div class="welcome-content">
-            <p>这是一个客服机器人</p>
+        <div class="logo"></div>
+
+        <div class="copy">
+            <div>@Author zjs</div>
         </div>
     </div>
-
 </template>
 
 <script>
@@ -51,5 +49,36 @@ export default {
 
     .welcome-content p{
         margin: 5px;
+    }
+
+    .title{
+        color: #414141;
+    }
+    .logo{
+        position:absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        background-image: url('../assets/cat_head.png');
+        background-size: 100% 100%;
+        height: 30%;
+        width: 20%;
+        transition: all 0.5s;
+    }
+    .logo:hover{
+        cursor: pointer;
+        transform: translate(-50%,-50%) scale(1.1);
+    }
+    .copy{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        position:absolute;
+        bottom: 2vh;
+        right: 5vw;
+        font-size: 3vh;
+        
+        color: #414141;
     }
 </style>

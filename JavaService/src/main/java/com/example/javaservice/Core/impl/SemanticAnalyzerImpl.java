@@ -85,11 +85,15 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                             if(transferList == null || transferList.getTransferList().size() == 0){
                                 compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_DEFAULT,child.getLine()));
                             }
+                            Boolean flag = false;
                             for(TransferNode transferNode : transferList.getTransferList()){
-                                if(!transferNode.HasGotoState()){
-                                    compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_DEFAULT,child.getLine()));
+                                if(transferNode.HasGotoState()){
+                                    flag = true;
                                     break;
                                 }
+                            }
+                            if(!flag){
+                                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_DEFAULT,child.getLine()));
                             }
                         }
                     }
@@ -100,49 +104,9 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         }else{
             throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_FAIL,1,compileWarnings);
         }
-        // 扫描Transfer 查看是否存在无法到达的状态
-        List<Integer> tempStateList = new java.util.ArrayList<>();
-        Map<Integer,State> tempStateMap = new java.util.HashMap<>();
-        List<AbstractSyntaxNode> children = ast.getRoot().getChildren();
-        Queue<Integer> queue = new java.util.LinkedList<>();
-        Map<Integer,Boolean> visited = new java.util.HashMap<>();
-        for(String key : stateMap.keySet()){
-            visited.put(stateMap.get(key).getId(),false);
-            tempStateMap.put(stateMap.get(key).getId(),stateMap.get(key));
-        }
 
-        for(Integer stateId : globalState){
-            queue.add(stateId);
-            visited.put(stateId,true);
-        }
-
-        while (!queue.isEmpty()){
-            Integer stateId = queue.poll();
-            TransferList transferList = transMap.get(stateId);
-
-            if(transferList != null && transferList.getTransferList().size() > 0){
-                for(TransferNode transferNode : transferList.getTransferList()){
-                    if(transferNode.HasGotoState()){
-                        if(!visited.get(transferNode.getGotoState())){
-                            visited.put(transferNode.getGotoState(),true);
-                            queue.add(transferNode.getGotoState());
-                        }
-                    }
-                }
-            }
-        }
-
-//        if(tempStateList.size() > 0){
-//            for(Integer stateId : tempStateList){
-//                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_UNREACHABLE,children.get(tempStateMap.get(stateId).getIndex()).getLine()));
-//            }
-//        }
-
-        for(Integer stateId : visited.keySet()){
-            if(!visited.get(stateId)){
-                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_UNREACHABLE,children.get(tempStateMap.get(stateId).getIndex()).getLine()));
-            }
-        }
+        // 检查状态
+        checkState(ast);
 
         // 生成依赖
         RobotDependency dependency = new RobotDependency();
@@ -159,6 +123,8 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         Map<String,Object> complexResult = new java.util.HashMap<>();
         complexResult.put("robotDependency",dependency);
         complexResult.put("compileWarnings",compileWarnings);
+
+        logPrint();
         return complexResult;
     }
 
@@ -401,17 +367,8 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                             parameterMap.put(parameter.getValue(), result.getState());
                         }
                     }else{
-                        logPrint();
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,node.getLine(),compileWarnings);
                     }
-                }
-            }
-        }
-        // 检查是否输入和参数相匹配
-        if(hasInput){
-            for(String input:inputs){
-                if(!inputFlagMap.get(input)){
-                    compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_INPUT_NOT_USE_ALL,node.getLine()));
                 }
             }
         }
@@ -563,6 +520,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 transferNode.setCondition((Condition) res.getData());
             }
         }else if(match_input_Node.getType() == TokensConstant.KEYWORD && match_input_Node.getValue().equals("default")){
+            // 更新GOTO_NODE
             // 默认
             treatInGlobal = true;
             if(stateMap.containsKey(currentState)){
@@ -574,6 +532,12 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                 throw new CompileErrorException(CompileErrorConstant.STATE_MAP_ERROR,match_input_Node.getLine(),compileWarnings);
             }
         }else if(match_input_Node.getType() == AbstractSyntaxConstant.WAIT_DEFINE) {
+            // 更新GOTO_NODE
+            if(children.size() > 6){
+                goto_Node = children.get(5);
+                // targetState
+                targetState_Node = children.get(6);
+            }
             treatInGlobal = true;
             if(match_input_Node.getChildren().size() != 2){
                 throw new CompileErrorException(CompileErrorConstant.SEMANTIC_IDENTIFIER_SCAN_AST,match_input_Node.getLine(),compileWarnings);
@@ -901,7 +865,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         // 将所有的已生成结构打印到文件
         FileOutputStream fileOutputStream = null;
         try {
-            fileOutputStream = new FileOutputStream(SystemConstant.SEMANTIC_ANAYSIS_PATH + "debug.txt");
+            fileOutputStream = new FileOutputStream(SystemConstant.SEMANTIC_ANAYSIS_PATH);
             PrintStream printStream = new PrintStream(fileOutputStream);
             // 打印stateMap
             printStream.println("stateMap:");
@@ -970,6 +934,76 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
 
         }catch (Exception e){
             e.printStackTrace();
+        }
+    }
+
+    private void checkState(AbstractSyntaxTree ast){
+        // 扫描Transfer 查看是否存在无法到达的状态
+        Map<Integer,State> tempStateMap = new java.util.HashMap<>();
+        List<AbstractSyntaxNode> children = ast.getRoot().getChildren();
+        Queue<Integer> queue = new java.util.LinkedList<>();
+        Map<Integer,Boolean> visited = new java.util.HashMap<>();
+
+        for(String key : stateMap.keySet()){
+            visited.put(stateMap.get(key).getId(),false);
+            tempStateMap.put(stateMap.get(key).getId(),stateMap.get(key));
+        }
+
+        for(Integer stateId : globalState){
+            queue.add(stateId);
+            visited.put(stateId,true);
+        }
+
+        while (!queue.isEmpty()){
+            Integer stateId = queue.poll();
+            TransferList transferList = transMap.get(stateId);
+            // 查看转移模块
+            if(transferList != null && transferList.getTransferList().size() > 0){
+                for(TransferNode transferNode : transferList.getTransferList()){
+                    if(transferNode.HasGotoState()){
+                        if(!visited.get(transferNode.getGotoState())){
+                            visited.put(transferNode.getGotoState(),true);
+                            queue.add(transferNode.getGotoState());
+                        }
+                    }
+                }
+            }
+            // 查看Hello模块
+            if(HelloMap.containsKey(stateId)){
+                TransferNode transferNode = HelloMap.get(stateId);
+                if(transferNode.HasGotoState()){
+                    if(!visited.get(transferNode.getGotoState())){
+                        visited.put(transferNode.getGotoState(),true);
+                        queue.add(transferNode.getGotoState());
+                    }
+                }
+            }
+            // 查看wait模块
+            if(waitResult.containsKey(stateId)){
+                WaitResult waitResult = this.waitResult.get(stateId);
+                if(waitResult.getTargetState() != -1){
+                    if(!visited.get(waitResult.getTargetState())){
+                        visited.put(waitResult.getTargetState(),true);
+                        queue.add(waitResult.getTargetState());
+                    }
+                }
+            }
+            // 查看default模块
+            if(defaultResult.containsKey(stateId)){
+                TransferNode transferNode = defaultResult.get(stateId);
+                if(transferNode.HasGotoState()){
+                    if(!visited.get(transferNode.getGotoState())){
+                        visited.put(transferNode.getGotoState(),true);
+                        queue.add(transferNode.getGotoState());
+                    }
+                }
+            }
+        }
+
+        for(Integer stateId : visited.keySet()){
+            if(!visited.get(stateId)){
+                compileWarnings.add(new CompileWarning(CompileWarningConstant.SEMANTIC_ANALYZE_STATE_UNREACHABLE,children.get(tempStateMap.get(stateId).getIndex()).getLine()));
+            }
         }
     }
 }

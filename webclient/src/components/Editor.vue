@@ -93,4 +93,11 @@
     background-color: #ffcc00;
     background-color: rgba(255, 204, 0, 0.1);
   }
+
+
+  /* Custom scrollbar style */
+  .cm-scroller::-webkit-scrollbar {
+    width: 0;
+  }
+  
 </style>

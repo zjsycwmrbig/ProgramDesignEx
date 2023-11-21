@@ -89,7 +89,9 @@ import { jsonParseLinter } from '@codemirror/lang-json';
 </script>
 
 <style scoped>
-  
+  h3{
+    font-weight: 900;
+  }  
 
   .head{
     position: fixed;

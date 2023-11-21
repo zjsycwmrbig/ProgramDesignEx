@@ -86,11 +86,15 @@ public class DSLCompilerImpl implements com.example.javaservice.Core.DSLCompiler
 
         LOG.INFO("词法分析完成");
         AbstractSyntaxTree abstractSyntaxTree = syntaxAnalyzer.analyze(tokens.getStream());
+
+        abstractSyntaxTree.logPrint();
+
         if(abstractSyntaxTree == null){
             return Result.error("语法分析失败");
         }
         LOG.INFO("语法分析完成");
         Map<String, Object> analyseResult = semanticAnalyzer.analyse(abstractSyntaxTree);
+
 
         LOG.INFO("语义分析完成");
         RobotDependency robotDependency = (RobotDependency) analyseResult.get("robotDependency");

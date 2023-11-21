@@ -26,7 +26,7 @@ export default {
     height: 10%;
     color: aqua;
     margin: 5px auto;
-    background-color: #14145d;
+    background-color: #242839;
     border-radius: 10px;
 
     text-align: center;
@@ -35,7 +35,7 @@ export default {
 
 .box:hover{
     cursor: pointer;
-    background-color: #14145d;
+    background-color: #232930;
     box-shadow: 0 0 10px rgba(0,0,0,.5);
 }
 

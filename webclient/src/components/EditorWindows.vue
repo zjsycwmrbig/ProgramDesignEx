@@ -4,10 +4,14 @@
     <div class="name">{{ dataSource.getName() }}</div>
     <div class="frame">
       <div class="farme_left">
+        
         <div :class="now_main_style == 0 ? 'main_normal' : 'main_full'">
           <div class="editorpart">
             <div class="full_screen" @click="full_screen()">
               <el-icon class="full_screen_icon"><FullScreen /></el-icon>
+            </div>
+            <div class="generate" @click="generate()">
+              <el-icon><Document /></el-icon>
             </div>
             <editor/>
           </div>
@@ -21,12 +25,34 @@
         <!-- 如果都没有，显示无错误，薄层覆盖 -->
         <div class="infoshow" v-if="dataSource.compileError.length == 0 && dataSource.compileWarning.length == 0">
           <div class="infohead">
-            <h4>编码范例</h4>
+            <h4>温馨提示</h4>
           </div>
+
           <div class="codedemo">
-            <p>
-              {{ DemoCode }}
-            </p>
+            <div class="tip">
+              <el-icon><Star /></el-icon>
+              <div>在左侧编写代码，点击提交按钮，即可提交代码！</div>
+            </div>
+            
+            <div class="tip">
+              <el-icon><Star /></el-icon>
+              <div>点击右上角全屏按钮，可以进入沉浸式编码模式！</div>
+            </div>
+            
+            <div class="tip">
+              <el-icon><Star /></el-icon>
+              <div>点击右上角生成按钮，可以自动生成实例代码！</div>
+            </div>
+            
+            <div class="tip">
+              <el-icon><Star /></el-icon>
+              <div>点击下方了解更多，可以查看代码规范和语法定义！</div>
+            </div>
+
+            <div class="dog"></div>
+            <div class="learn_more">
+              <a href="https://fsbupteducn.feishu.cn/docx/MpfQdf4Puog15OxVH6aczqfqnte?from=from_copylink" target="_blank">了解更多</a>
+            </div>
           </div>  
           <div class="Anti-piracy">
             <div class="piracyrow" v-for="(item,index) in 20" :key="index">
@@ -77,6 +103,20 @@ export default {
         now_main_style.value = 0
       }
     }
+    // 使用说明
+    let DemoCode = editor.DemoCode
+
+    // 生成实例代码
+    let generate = function(){
+      // 获得范例代码
+      editor.getDemoCode()
+      // 更新替换范例代码
+      let myCode = editor.DemoCode
+      myCode = myCode.replace('__name__',dataSource.getName())
+      myCode = myCode.replace('__description__',dataSource.getDescription())
+      // 更新到dataSource中的code
+      dataSource.code = myCode
+    }
 
     let loc_line = function(line,type){
       // 跳转到错误的位置
@@ -84,15 +124,17 @@ export default {
       editor.highLightType = type
       info('跳转到第'+line+'行',type)
     }
+
+    // 获得范例代码
     
-    let DemoCode = editor.DemoCode
-  
+    
     return{
       dataSource,
       full_screen,
       now_main_style,
       loc_line,
-      DemoCode
+      DemoCode,
+      generate
     }
   }
 }
@@ -147,6 +189,7 @@ export default {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  z-index: 1000;
 }
 
 .description{
@@ -177,6 +220,27 @@ export default {
   background-color: #c2977f;
 }
 
+.generate{
+  z-index: 1000;
+  position: absolute;
+  top: 5%;
+  right: 0;
+  border-radius: 3px;
+  height: 5%;
+  width: 5%;
+  background-color: #41417d;
+  color: white;
+  font-size: large;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.5s;
+}
+
+.generate:hover{
+  cursor: pointer;
+  background-color: #c2977f;
+}
 
 .editorpart{
   position: relative;
@@ -184,6 +248,8 @@ export default {
   width: 100%;
   border-radius: 20px;
 }
+
+
 
 .info{
   height: 100%;
@@ -292,6 +358,7 @@ export default {
 }
 
 .codedemo{
+  position: relative;
   border: #41417d 2px solid;
   border-radius: 10px;
   height: 90%;
@@ -305,11 +372,66 @@ export default {
   z-index: 100;
 }
 
+.codedemo::-webkit-scrollbar
+{
+  width: 10px;
+  height: 10px;
+}
+
 .compileres{
   position: relative;
   height: 100%;
   width: 100%;
   overflow: hidden;
   background-color:transparent;
+}
+
+.learn_more{
+  position:absolute;
+  bottom: 5px;
+  right: 5px;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  
+  height: 5%;
+  color: #c2977f;
+  font: 800 2vh "Microsoft YaHei";
+  background-color: #c2977f;
+  border-radius: 5px;
+  transition: all 0.5s;
+  padding: 5px;
+}
+.learn_more a {
+  color: #41417d;
+  text-decoration: none;
+  transition: all 0.5s;
+}
+.learn_more :hover{
+  cursor: pointer;
+  color: #c2977f;
+  background-color: #41417d;
+  
+}
+
+.dog{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  height: 50%;
+  width: 50%;
+  background-image: url('../assets/dog.gif');
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.tip{
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 15px;
+  border-bottom: 2px dotted #41417d;
 }
 </style>

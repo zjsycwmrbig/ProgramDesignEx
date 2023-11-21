@@ -12,9 +12,9 @@
           <div class="suggestion" v-show="suggestionList!=null&&suggestionList.length != 0">
             <!-- 显示所有的建议 -->
             <div class="suggestion_item" v-for="(item,index) in suggestionList" :key="index" @click="trans.message = item.inputTemplate">
-              <div class="itemText">
+              <el-text line-clamp="1" truncated style="color: bisque;">
                 {{ item.suggestion }}
-              </div>
+              </el-text>
             </div>
           </div>
 
@@ -25,7 +25,7 @@
           />
 
         </div>
-        <el-icon size="45"><Promotion /></el-icon>
+        <el-icon size="45" @click="trans.sendMessage()" class="send"><Promotion /></el-icon>
     </div>
     
   </div>
@@ -127,7 +127,7 @@ export default {
 
   .suggestion{
     position: absolute;
-    top: -3.5vh;
+    top: -4vh;
     left: 0;
     width: 100%;
     height: 3vh;
@@ -139,6 +139,7 @@ export default {
 
   .suggestion_item{
     height: 100%;
+    width: auto;
     color: white;
     font: 800;
     border-radius: 1.5vh;
@@ -148,17 +149,19 @@ export default {
     align-items: center;
     padding: 15px;
     margin-right: 1vw;
-    transition: all 2s;
+    transition: all 3s;
     overflow: hidden;
   }
 
   .suggestion_item:hover{
-    position:absolute;
-    width: 100%;
-    top: 0;
-    left: 0;
+    width: 80%;
     cursor: pointer;
     background-color: #242424;
+  }
+
+  .send:hover{
+    cursor: pointer;
+    color: #c2977f;
   }
 
 </style>

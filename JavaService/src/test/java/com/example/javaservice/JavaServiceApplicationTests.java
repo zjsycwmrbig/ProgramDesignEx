@@ -41,6 +41,39 @@ class JavaServiceApplicationTests {
     }
 
     /**
+     * 自动测试脚本
+     */
+    @Test
+    void TestAutoScript(){
+        // 读取文件
+        File file = new File("C:\\Users\\Administrator\\Desktop\\test.txt");
+        Scanner scanner = null;
+        try {
+            scanner = new Scanner(file, StandardCharsets.UTF_8.name());
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        String code = "";
+        while (scanner.hasNextLine()) {
+            code += scanner.nextLine();
+        }
+        // 词法分析
+        LexicalAnalyzer lexicalAnalyzer = new LexicalAnalyzerImpl();
+        Tokens tokens = lexicalAnalyzer.analyze(code);
+        // 语法分析
+        SyntaxAnalyzer syntaxAnalyzer = new SyntaxAnalyzerIpml();
+        AbstractSyntaxTree abstractSyntaxTree = syntaxAnalyzer.analyze(tokens);
+        // 语义分析
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzerImpl();
+        semanticAnalyzer.analyze(abstractSyntaxTree);
+        // 生成DSL
+        DSLCompiler dslCompiler = new DSLCompilerImpl();
+        String dsl = dslCompiler.compile(abstractSyntaxTree);
+        System.out.println(dsl);
+    }
+
+
+    /**
      * 正则匹配测试
      */
     @Test
@@ -194,6 +227,9 @@ class JavaServiceApplicationTests {
         }
     }
 
+    /**
+     * 测试依赖存储
+     */
     @Test
     void testDB(){
         DependencyMap dependencyMap = new DependencyMap();
@@ -211,7 +247,9 @@ class JavaServiceApplicationTests {
         dependencyMapMapper.insert(dependencyMap1);
     }
 
-
+    /**
+     * 清除数据库中的数据
+     */
     @Test
     void clearDataSource(){
         List<DependencyMap> dependencyMaps = dependencyMapMapper.selectList(null);
@@ -233,6 +271,9 @@ class JavaServiceApplicationTests {
         }
     }
 
+    /**
+     * 进行电话号码存储
+     */
     @Test
     void addTelePhone(){
         telephoneMapMapper.insert(new TelephoneMap("淘宝",123435445));
@@ -255,7 +296,6 @@ class JavaServiceApplicationTests {
         telephoneMapMapper.insert(new TelephoneMap("范小勤",1234567247));
         telephoneMapMapper.insert(new TelephoneMap("李小勤",1234567248));
         telephoneMapMapper.insert(new TelephoneMap("王小勤",1234567249));
-
-
     }
+
 }

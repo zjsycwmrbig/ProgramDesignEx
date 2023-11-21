@@ -194,10 +194,12 @@ public class CustomerService {
 
         // 查看默认响应
         if(defaultResultMap.containsKey(state)){
-            // 如果存在默认响应
+            // 如果存在默认响应 切换状态
+            if(defaultResultMap.get(state).getTargetState() != -1){
+                StateChangeProcessor(defaultResultMap.get(state).getTargetState());
+            }
             return new Result(state,ResultGenerator(defaultResultMap.get(state).getResultID(),null),"响应成功");
         }
-
 
         // 没有相应成功的 从全局状态中寻找
         List<Integer> globalState = robotDependency.getGlobalState();
@@ -261,6 +263,10 @@ public class CustomerService {
                     websocketResult.setData(hello);
                     String json = objectMapper.writeValueAsString(websocketResult);
                     client.sendMessage(new TextMessage(json));
+                    // begin 后存在 goto 切换状态
+                    if(helloNode.getTargetState() != -1){
+                        StateChangeProcessor(helloNode.getTargetState());
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

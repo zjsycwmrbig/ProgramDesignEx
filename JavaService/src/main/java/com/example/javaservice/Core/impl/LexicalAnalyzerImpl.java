@@ -211,6 +211,7 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
                     throw new LexiAnalyseException(CompileErrorConstant.ILLEGAL_CODE,lineIndex);
             }
         }
+
         // 打印log
         logPrint(new Tokens(stream,map));
         return new Tokens(stream,map);
@@ -373,7 +374,7 @@ public class LexicalAnalyzerImpl implements com.example.javaservice.Core.Lexical
     public void logPrint(Tokens tokens) {
         // 把Tokens输出到文件
         try {
-            File file = new File(SystemConstant.LEXICAL_ANALYSIS_PATH + "log.txt");
+            File file = new File(SystemConstant.LEXICAL_ANALYSIS_PATH);
             if(!file.exists()){
                 file.createNewFile();
             }

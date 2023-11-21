@@ -16,7 +16,7 @@ public class AbstractSyntaxTree {
 
     public void logPrint(){
         try {
-            FileOutputStream fileOutputStream = new FileOutputStream(SystemConstant.SYNTAX_ANALYSIS_PATH + "AbstractSyntaxTree.txt");
+            FileOutputStream fileOutputStream = new FileOutputStream(SystemConstant.SYNTAX_ANALYSIS_PATH);
             fileOutputStream.write("AbstractSyntaxTree:\n".getBytes());
             root.logPrint(fileOutputStream,0);
         } catch (Exception e) {

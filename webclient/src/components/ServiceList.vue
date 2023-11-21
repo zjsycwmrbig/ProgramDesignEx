@@ -58,8 +58,7 @@ export default {
     background-image: url('../assets/blackcat.gif');
     background-repeat: no-repeat;
     background-size: 100% 100%;
-    width: 15vw;
-    height: 15vw;
-
+    width: 5vw;
+    height: 5vw;
 }
 </style>
