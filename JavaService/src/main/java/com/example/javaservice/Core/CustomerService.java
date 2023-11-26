@@ -58,14 +58,6 @@ public class CustomerService {
                         websocketResult.setData(ResultGenerator(waitResponse,null));
                         String json = objectMapper.writeValueAsString(websocketResult);
                         client.sendMessage(new TextMessage(json));
-                        // 可以设置发送超时响应
-                        if(robotDependency.getSuggestion_when_pass()){
-                            // 把建议发送给客户端 转换成json序列
-                            websocketResult.setType(ResultConstant.SUGGESTION);
-                            websocketResult.setData(SuggestionGenerator().toString());
-                            json = objectMapper.writeValueAsString(websocketResult);
-                            client.sendMessage(new TextMessage(json));
-                        }
                         StateChangeProcessor(waitTarget);
                     }
                     Thread.sleep(SystemConstant.WAIT_TIME);
@@ -143,19 +135,14 @@ public class CustomerService {
                     // 输入模式 关键词不再是一个
                     String suggestionStr = "您可以输入:";
                     for(int j = 0;j < condition.getREGEX().size();j++) {
-                        suggestionStr += condition.getREGEX().get(j) ;
-                        if(j != condition.getREGEX().size() - 1) {
+                        if(condition.getREGEX().get(j).startsWith("\"") && condition.getREGEX().get(j).endsWith("\"")) {
+                            suggestionStr += condition.getREGEX().get(j).substring(1, condition.getREGEX().get(j).length() - 1);
+                        }else{
                             suggestionStr += "xxx";
                         }
                     }
                     suggestionStr += "来获取相关信息";
-                    String inputTemplateStr = "";
-                    for(int j = 0;j < condition.getREGEX().size();j++) {
-                        inputTemplateStr += condition.getREGEX().get(j) ;
-                        if(j != condition.getREGEX().size() - 1) {
-                            inputTemplateStr += "xxx";
-                        }
-                    }
+                    String inputTemplateStr = suggestionStr.substring(6,suggestionStr.length() - 7);
                     suggestion.setInputTemplate(inputTemplateStr);
                     suggestion.setSuggestion(suggestionStr);
                     suggestionList.add(suggestion);
@@ -241,16 +228,17 @@ public class CustomerService {
             // 等待时间相关
             resetWaitResponse(); // 状态更新也要更新等待响应模块
             // 建议相关
-            if(robotDependency.getSuggestion_when_check()){
-                try {
-                    WebsocketResult websocketResult = new WebsocketResult();
-                    websocketResult.setType(ResultConstant.SUGGESTION);
-                    websocketResult.setData(SuggestionGenerator());
-                    String json = objectMapper.writeValueAsString(websocketResult);
-                    client.sendMessage(new TextMessage(json));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//            if(robotDependency.getSuggestion_when_check()){
+//
+//            }
+            try {
+                WebsocketResult websocketResult = new WebsocketResult();
+                websocketResult.setType(ResultConstant.SUGGESTION);
+                websocketResult.setData(SuggestionGenerator());
+                String json = objectMapper.writeValueAsString(websocketResult);
+                if(client != null)  client.sendMessage(new TextMessage(json));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
             // Say Hello 相关
             if(robotDependency.getHelloMap().containsKey(state)){
@@ -262,7 +250,7 @@ public class CustomerService {
                     String hello = ResultGenerator(helloNode.getResultID(), null);
                     websocketResult.setData(hello);
                     String json = objectMapper.writeValueAsString(websocketResult);
-                    client.sendMessage(new TextMessage(json));
+                    if(client != null) client.sendMessage(new TextMessage(json));
                     // begin 后存在 goto 切换状态
                     if(helloNode.getTargetState() != -1){
                         StateChangeProcessor(helloNode.getTargetState());
@@ -395,5 +383,18 @@ public class CustomerService {
 
     public static void resetState() {
         if(robotDependency != null) state = robotDependency.getDefaultState();
+    }
+
+    /**
+     * 自动测试专用脚本
+     *
+     * @return
+     */
+    public static RobotDependency getRobotDependency() {
+        return robotDependency;
+    }
+
+    public static void setStateInTest(Integer stateId) {
+        state = stateId;
     }
 }

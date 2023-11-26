@@ -1,0 +1,49 @@
+auto-test-script:
+  # 懒人模式
+  totalScriptsPath: src\main\resources\TestScripts\
+  # 脚本路径
+  errorScriptsPath: src\main\resources\TestScripts\ErrorScripts\
+  # 含有错误的脚本
+  warningScriptsPath: src\main\resources\TestScripts\WarningScripts\
+  # 含有警告的脚本
+  successScriptsPath: src\main\resources\TestScripts\SuccessScripts\
+  # 没有错误的脚本
+
+  # 含有警告的脚本 含有错误的脚本 没有错误的脚本
+  compileOutputPath: src\main\resources\TestResults\TestCompileResults\
+  responseOutputPath: src\main\resources\TestResults\TestResponseResults\
+
+  # 测试后清除脚本
+  clearScriptAfterCompile: true
+
+  # 测试偏向
+
+  # 1. 频繁的状态转移
+  # 2. 频繁字符串匹配
+  # 3. 访问查询数据库
+  # 4. 测试default
+  # 5. 测试wait连接
+
+  responseScriptPath: src\main\resources\TestScripts\ResponseTestScripts
+
+  testBias: false
+
+  #  输入匹配 2;
+  #  精准匹配 3;
+  #  模糊匹配 4;
+  #  正则匹配 5;
+  testBiasFor: 2
+
+  # 测试编译 对于每个脚本的测试次数
+
+  # 测试解释
+  checkBookPath: src\main\resources\TestScripts\CheckBook\ # 响应检查路径
+
+  testRound: 3 # 测试所有状态为一轮
+  testNumber: 100 # 测试每个状态中的语句
+
+  randomTest: false # 随机测试
+  randomTestSkip: 10 # 随机测试跳跃数量
+
+  # 随机生成 针对输入是否随机生成组合 开启后会出现大量随机测试，需要多次检验
+  randomGenerate: false

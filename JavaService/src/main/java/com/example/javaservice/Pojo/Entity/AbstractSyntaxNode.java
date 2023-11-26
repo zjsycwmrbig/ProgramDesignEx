@@ -10,7 +10,6 @@ import java.util.List;
 
 @Data
 public class AbstractSyntaxNode {
-    // TODO 这里怎么有机结合起来？
     private Integer tokenIndex; // 标识这个的顺序
     private Integer length; // 这个节点的长度
     private Integer type;

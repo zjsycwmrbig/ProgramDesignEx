@@ -16,6 +16,4 @@ public class TokensConstant {
     public static final int INPUT_FLAG = 12;
     public static final int COMMENT = 13;
     public static final String[] TOKENS = {"KEYWORD", "IDENTIFIER", "STRING", "NUMBER", "OPERATOR", "DELIMITER", "MATCHMAKER", "DEFAULT", "ERROR", "EOF", "FUNCTION", "PARAMETER", "INPUT_FLAG", "COMMENT"};
-
-
 }

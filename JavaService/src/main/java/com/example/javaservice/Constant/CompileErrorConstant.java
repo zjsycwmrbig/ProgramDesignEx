@@ -79,4 +79,5 @@ public class CompileErrorConstant {
     public static final String THERE_ARE_NOT_ONE_BEGIN = "存在多个欢迎语句";
     public static final String SEMANTIC_IDENTIFIER_SCAN_FAIL = "语义分析时，扫描标识符失败";
     public static final String SEMANTIC_LOGIC_REDEFINE = "语义分析时，分析该状态，发现一个状态下的逻辑表达式中存在多个歧义匹配符！";
+
 }

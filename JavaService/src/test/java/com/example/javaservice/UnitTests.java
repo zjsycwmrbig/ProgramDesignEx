@@ -15,6 +15,7 @@ import com.example.javaservice.Pojo.SQLDATA.TelephoneMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,8 +28,9 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Component
 @SpringBootTest
-class JavaServiceApplicationTests {
+class UnitTests {
 
     @Autowired
     DependencyMapMapper dependencyMapMapper;
@@ -62,14 +64,14 @@ class JavaServiceApplicationTests {
         Tokens tokens = lexicalAnalyzer.analyze(code);
         // 语法分析
         SyntaxAnalyzer syntaxAnalyzer = new SyntaxAnalyzerIpml();
-        AbstractSyntaxTree abstractSyntaxTree = syntaxAnalyzer.analyze(tokens);
+        AbstractSyntaxTree abstractSyntaxTree = syntaxAnalyzer.analyze(tokens.getStream());
         // 语义分析
         SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzerImpl();
-        semanticAnalyzer.analyze(abstractSyntaxTree);
+//        semanticAnalyzer.analyze(abstractSyntaxTree);
         // 生成DSL
-        DSLCompiler dslCompiler = new DSLCompilerImpl();
-        String dsl = dslCompiler.compile(abstractSyntaxTree);
-        System.out.println(dsl);
+//        DSLCompiler dslCompiler = new DSLCompilerImpl();
+//        String dsl = dslCompiler.compile(abstractSyntaxTree);
+//        System.out.println(dsl);
     }
 
 

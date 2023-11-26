@@ -1,7 +1,10 @@
 package com.example.javaservice.Utils;
 
+import com.example.javaservice.Config.LogConfig;
 import com.example.javaservice.Constant.LOGConstant;
 import com.example.javaservice.Constant.SystemConstant;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class LOG {
+
     private static FileOutputStream fileOutputStream;
     private static void init(){
         try {

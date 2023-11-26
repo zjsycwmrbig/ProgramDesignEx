@@ -5,7 +5,6 @@ import com.example.javaservice.Exception.CompileErrorException;
 import com.example.javaservice.Pojo.Entity.*;
 import com.example.javaservice.Result.Result;
 import com.example.javaservice.Utils.FunctionCompile;
-import com.example.javaservice.Utils.LOG;
 import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
@@ -120,6 +119,16 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
         dependency.setDefaultResultMap(defaultResult);
         dependency.setWaitResultMap(waitResult);
         dependency.setHelloMap(HelloMap);
+        // 根据stateMap 生成 <String,Integer> stateMap
+
+        // For自动测试脚本
+        Map<String,Integer> newStateMap = new java.util.HashMap<>();
+        for(Map.Entry<String,State> entry : stateMap.entrySet()){
+            newStateMap.put(entry.getKey(),entry.getValue().getId());
+        }
+
+        dependency.setStateMap(newStateMap);
+
         Map<String,Object> complexResult = new java.util.HashMap<>();
         complexResult.put("robotDependency",dependency);
         complexResult.put("compileWarnings",compileWarnings);
@@ -783,7 +792,7 @@ public class SemanticAnalyzerImpl implements com.example.javaservice.Core.Semant
                         throw new CompileErrorException(CompileErrorConstant.SEMANTIC_RESULT_IDENTIFIER_NOT_SOLVED,child.getLine(),compileWarnings);
                     }
                 }
-                else if(params.contains(child.getValue())){ // 理论上只要需要的在params里面就可以实现
+                else if(params != null && params.contains(child.getValue())){ // 理论上只要需要的在params里面就可以实现
                     // 代表是一个代填充结果
                     Integer id = resultDictionary.addCompileResult(new CompileResult(SemanticAnalysisConstant.INPUT_VARIABLE_RESULT, child.getValue(), null));
                     resultList.add(id);

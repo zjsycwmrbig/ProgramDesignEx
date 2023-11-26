@@ -1,5 +1,6 @@
 package com.example.javaservice.Service.Impl;
 import com.example.javaservice.Mapper.TelephoneMapMapper;
+import com.example.javaservice.Pojo.SQLDATA.TelephoneMap;
 
 import java.util.Map;
 
@@ -24,22 +25,20 @@ public class FunctionCaller {
         // 查看Map中的键
         String tb = (String) params.get("tb");
         String id = (String) params.get("id");
-        Object res = null;
-
         // 挑选表的名称
         switch (tb){
             case "telephone":
+                TelephoneMap res;
                 // 得到TelephoneMapMapper
-                res = telephoneMapMapper.selectById(id).getValue();
-                break;
+                res = telephoneMapMapper.selectById(id);
+                if(res == null) {
+                    return "查询结果不存在";
+                }
+                else {
+                    return String.valueOf(res.getValue());
+                }
             default:
                 return "tb" + tb + "不存在";
-        }
-
-        if(res == null) {
-            return "Query " + tb + " " + id + " Failed";
-        }else{
-            return res.toString();
         }
     }
 }
