@@ -1,5 +1,4 @@
 auto-test-script:
-  # 懒人模式
   totalScriptsPath: src\main\resources\TestScripts\
   # 脚本路径
   errorScriptsPath: src\main\resources\TestScripts\ErrorScripts\

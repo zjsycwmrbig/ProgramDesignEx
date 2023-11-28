@@ -770,7 +770,7 @@ public class AutoTest {
             outputString += TestINFO("测试未知点数 " + unknownTestPoint );
 
             // 保存测试结果
-            SaveTestResponseData(ResponseScriptsDir.getName(),outputString,tempTestUnitEntityMap);
+            SaveTestResponseData(ResponseScriptDir.getName(),outputString,tempTestUnitEntityMap);
             totalOutputString += outputString;
         }
         // 保存 totalOutputString 测试结果 到文件中

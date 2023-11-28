@@ -1,0 +1,42 @@
+// 变量定义
+my_telephone = 15665777392
+What_I_can_do = "我是一款医疗客服机器人,支持查询电话等功能,欢迎使用!"
+
+// global 是全局状态 也就是在任何状态下都可以访问
+// 但是 当下状态优先级最高
+global Hello {
+  begin:return "你好,我是医生,请问有什么能为您服务,如有问题,请联系" + my_telephone goto main
+}
+
+// 主模块
+main {
+   '你可以干什么':return What_I_can_do // 准确发送才能匹配
+   '你可以':return What_I_can_do // 准确发送才能匹配
+     <会什么> : return What_I_can_do // 模糊发送也能匹配
+     `.*你.*能.*什么`: return What_I_can_do // 支持自定义正则匹配
+     <我要看病> : return "请稍等,正在联系相关医生" goto SaleAfter
+     <我要买药> : return "欢迎光临" goto Shop
+     default : return "对不起,我没有明白您的意思,您可以尝试使用建议重新询问!" // 无法匹配时的回复
+     wait 300 : return "还在吗?可以点击下方建议询问!" // 超时后发送的内容
+}
+
+SaleAfter {
+  begin:return "请问您是要看病吗?"
+  '是' : return "好的,正在打开!" goto QueryTelephone
+  <不是> : return "好的,正在返回主菜单!" goto main
+  default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
+}
+
+QueryTelephone {
+  begin:return "请问您要查询哪个医生的电话?您可以使用:'查询xxx的电话'这样的格式来查询!"
+  ["查询".somebody."的电话"] : return "正在查询" + somebody + "的电话,请稍等! "+ somebody + "的电话是" + Query($tb="telephone",$id=somebody) + "!"
+  '返回' : return "好的,正在返回主菜单!" goto main
+  default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
+}
+
+Shop{
+    begin:return "请问您要购买什么?"
+    ["购买".st."药品"] : return "正在购买" + st + "药品！ 请稍等! 购买成功!欢迎下次光临!" goto main
+    '返回' : return "好的,正在返回主菜单!" goto main
+    default:return "对不起,我没有明白您的意思,您可以说的更清楚点吗?"
+}

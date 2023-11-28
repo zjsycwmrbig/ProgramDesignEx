@@ -11,6 +11,7 @@ public class DemoCode {
     public String DemoCode() {
         // 读取文件 DemoCode.txt 里面的内容 返回
         // src/main/resources/static/DemoCode.txt
+
         FileInputStream fileInputStream = null;
         try {
             fileInputStream = new FileInputStream("src/main/resources/static/DemoCode.txt");

@@ -127,7 +127,6 @@ class UnitTests {
         bytes = new String(bytes).getBytes(StandardCharsets.UTF_8);
         String code = new String(bytes);
 
-
         Tokens tokens = lexicalAnalyzer.analyze(code);
         lexicalAnalyzer.logPrint(tokens);
     }
